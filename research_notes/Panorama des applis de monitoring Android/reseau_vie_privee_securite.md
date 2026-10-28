@@ -459,7 +459,7 @@ What does not exist is one app that combines:
 **16. Security posture checks**
 - Pixel Security & privacy hub: status, alerts, recommendations. — [Google Help](https://support.google.com/android/answer/13985942?hl=en) (snippet)
 - Play Integrity API Checker: verdicts. — [XDA](https://www.xda-developers.com/play-integrity-api-checker-android-app/)
-- Auditor: hardware attestation including verified-boot state. — [Auditor release notes](https://newreleases.io/project/github/GrapheneOS/Auditor/release/76)
+- Auditor: hardware attestation including verified-boot state (snippet). — [Auditor release notes](https://newreleases.io/project/github/GrapheneOS/Auditor/release/76)
 - Key Attestation: certificate chain, Keymint, revocation list. — [releases.atom](https://github.com/vvb2060/KeyAttestation/releases.atom)
 
 **17. APK signature verification**
@@ -548,7 +548,7 @@ That VPN competes for the single VPN slot with any firewall or monitor.
   - — [9to5Google](https://9to5google.com/2023/10/12/pixel-8-google-one-vpn/), [PhoneArena](https://www.phonearena.com/news/pixel-vpn-drops-google-one-branding-and-is-now-just-pixel-vpn-by-google_id158916), [9to5Google 2025](https://9to5google.com/2025/05/06/google-fi-vpn-pixel/)
 - **Exynos 5300 modem (Pixel 8 / 8 Pro):** 4 nm, 3GPP Rel-16 5G NR, FR1 + FR2 (mmWave) and EN-DC. — [SamMobile](https://www.sammobile.com/news/samsung-exynos-modem-5300-5g-launched-faster-efficient/), [FoneArena](https://www.fonearena.com/blog/389467/samsung-exynos-modem-5300-features.html/amp)
 - A third-party spec site lists Pixel 8 Pro NR bands n1–n78 plus n257–n261 mmWave (secondary source). — [DeviceBeast](https://devicebeast.com/devices/google-pixel-8-pro-5g-uw-td-lte-us-1tb-g1mnw)
-- **Band reporting:** forum users note that band and carrier-aggregation display "depends on what the modem exposes via the APIs". Exynos-based phones show some bands as invisible on certain networks. — [ISPreview forum](https://www.ispreview.co.uk/talk/goto/post?id=361488), [EE community](https://community.ee.co.uk/t5/Mobile-Network-discussions/EE-RAN-Misconfiguration/td-p/1548139/page/2)
+- **Band reporting:** forum users note that band and carrier-aggregation display "depends on what the modem exposes via the APIs". Exynos-based phones show some bands as invisible on certain networks (snippet; the exact forum post for each quote is uncertain). — [ISPreview forum](https://www.ispreview.co.uk/talk/goto/post?id=361488), [EE community](https://community.ee.co.uk/t5/Mobile-Network-discussions/EE-RAN-Misconfiguration/td-p/1548139/page/2)
 
 ### Inferences
 - **Starting point for a personal app:** the native Privacy dashboard and Security hub already cover the "what accessed my mic/camera/location in the last 7 days" and "am I up to date" basics. The gap is **longer retention, cross-signal correlation and export**. Examples: correlating permission access with network bursts, or keeping a history beyond 7 days.
