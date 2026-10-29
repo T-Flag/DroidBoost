@@ -16,6 +16,9 @@ done
 adb shell appops set "$PKG" GET_USAGE_STATS allow || true
 adb shell appops set "$PKG" MANAGE_EXTERNAL_STORAGE allow || true
 adb logcat -c
+# Un émulateur lent affiche parfois « … ne répond pas » : on ferme les fenêtres système avant de commencer.
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
+adb shell input keyevent 3
 
 # Écran courant au format XML ; l'écran se met à jour en continu, d'où les essais répétés.
 dump() {
@@ -36,7 +39,7 @@ shot() {
 
 expect() {
   local screen="$1"; shift
-  local xml
+  local xml missing=0
   xml=$(dump) || { echo "?? $screen : écran illisible par uiautomator"; return; }
   for text in "$@"; do
     if echo "$xml" | grep -qF "text=\"$text"; then
@@ -44,8 +47,13 @@ expect() {
     else
       echo "KO $screen : « $text » introuvable"
       FAILURES=$((FAILURES + 1))
+      missing=1
     fi
   done
+  if [ "$missing" = 1 ]; then
+    echo "   affiché : $(echo "$xml" | grep -oE 'text="[^"]+"' | head -15 | tr '\n' ' ')"
+    echo "   paquets : $(echo "$xml" | grep -oE 'package="[^"]+"' | sort -u | tr '\n' ' ')"
+  fi
 }
 
 # Touche le centre du premier élément dont le texte commence par $1.
@@ -72,6 +80,7 @@ back() { adb shell input keyevent 4; sleep 3; }
 
 adb shell am start -W -n "$PKG/.MainActivity"
 sleep 8
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
 shot tableau-de-bord
 expect "Tableau de bord" "Notification permanente" "Batterie" "Thermique"
 
