@@ -2,8 +2,8 @@ package fr.tflag.droidboost.ui
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,19 +33,35 @@ import fr.tflag.droidboost.ui.apps.AppDetailScreen
 import fr.tflag.droidboost.ui.apps.AppDetailViewModel
 import fr.tflag.droidboost.ui.apps.AppsScreen
 import fr.tflag.droidboost.ui.apps.AppsViewModel
+import fr.tflag.droidboost.ui.battery.BatteryScreen
+import fr.tflag.droidboost.ui.battery.BatteryViewModel
 import fr.tflag.droidboost.ui.dashboard.DashboardScreen
 import fr.tflag.droidboost.ui.dashboard.DashboardViewModel
+import fr.tflag.droidboost.ui.more.MoreScreen
+import fr.tflag.droidboost.ui.settings.SettingsScreen
+import fr.tflag.droidboost.ui.settings.SettingsViewModel
 import fr.tflag.droidboost.ui.storage.StorageScreen
 import fr.tflag.droidboost.ui.storage.StorageViewModel
+import fr.tflag.droidboost.ui.thermal.ThermalScreen
+import fr.tflag.droidboost.ui.thermal.ThermalViewModel
 
 private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
     DASHBOARD("dashboard", "Tableau de bord", Icons.Outlined.Speed),
     APPS("apps", "Applis", Icons.Outlined.Apps),
     STORAGE("storage", "Stockage", Icons.Outlined.Storage),
-    ACCESS("access", "Accès", Icons.Outlined.AdminPanelSettings),
+    MORE("more", "Plus", Icons.Outlined.MoreHoriz),
 }
 
 private const val APP_DETAIL = "app/{pkg}"
+
+/** Secondary screens: title shown in the top bar and tab highlighted underneath. */
+private val SECONDARY = mapOf(
+    APP_DETAIL to ("Détail de l'appli" to Tab.APPS),
+    "battery" to ("Batterie" to Tab.MORE),
+    "thermal" to ("Thermique" to Tab.MORE),
+    "access" to ("Accès" to Tab.MORE),
+    "settings" to ("Réglages" to Tab.MORE),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +70,8 @@ fun DroidBoostRoot(container: AppContainer) {
     val backStack by navController.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val snackbar = remember { SnackbarHostState() }
-    val currentTab = Tab.entries.firstOrNull { it.route == route } ?: if (route == APP_DETAIL) Tab.APPS else Tab.DASHBOARD
+    val secondary = SECONDARY[route]
+    val currentTab = Tab.entries.firstOrNull { it.route == route } ?: secondary?.second ?: Tab.DASHBOARD
 
     fun openTab(tab: Tab) {
         navController.navigate(tab.route) {
@@ -66,12 +83,14 @@ fun DroidBoostRoot(container: AppContainer) {
 
     fun openApp(packageName: String) = navController.navigate("app/$packageName")
 
+    fun navigateTo(route: String) = navController.navigate(route) { launchSingleTop = true }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (route == APP_DETAIL) "Détail de l'appli" else currentTab.label) },
+                title = { Text(secondary?.first ?: currentTab.label) },
                 navigationIcon = {
-                    if (route == APP_DETAIL) {
+                    if (secondary != null) {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Retour")
                         }
@@ -95,7 +114,13 @@ fun DroidBoostRoot(container: AppContainer) {
     ) { padding ->
         NavHost(navController, startDestination = Tab.DASHBOARD.route) {
             composable(Tab.DASHBOARD.route) {
-                DashboardScreen(viewModel { DashboardViewModel(container) }, padding, onOpenAccess = { openTab(Tab.ACCESS) })
+                DashboardScreen(
+                    viewModel { DashboardViewModel(container) },
+                    padding,
+                    onOpenAccess = { navigateTo("access") },
+                    onOpenBattery = { navigateTo("battery") },
+                    onOpenThermal = { navigateTo("thermal") },
+                )
             }
             composable(Tab.APPS.route) {
                 AppsScreen(
@@ -103,7 +128,7 @@ fun DroidBoostRoot(container: AppContainer) {
                     container.apps,
                     padding,
                     onOpenApp = ::openApp,
-                    onOpenAccess = { openTab(Tab.ACCESS) },
+                    onOpenAccess = { navigateTo("access") },
                 )
             }
             composable(APP_DETAIL) { entry ->
@@ -113,7 +138,7 @@ fun DroidBoostRoot(container: AppContainer) {
                     container.apps,
                     padding,
                     snackbar,
-                    onOpenAccess = { openTab(Tab.ACCESS) },
+                    onOpenAccess = { navigateTo("access") },
                 )
             }
             composable(Tab.STORAGE.route) {
@@ -123,12 +148,30 @@ fun DroidBoostRoot(container: AppContainer) {
                     padding,
                     snackbar,
                     onOpenApp = ::openApp,
-                    onOpenAccess = { openTab(Tab.ACCESS) },
+                    onOpenAccess = { navigateTo("access") },
                 )
             }
-            composable(Tab.ACCESS.route) {
+            composable(Tab.MORE.route) { MoreScreen(padding, onOpen = ::navigateTo) }
+            composable("access") {
                 AccessScreen(viewModel { AccessViewModel(container) }, padding, snackbar)
             }
+            composable("battery") {
+                BatteryScreen(
+                    viewModel { BatteryViewModel(container) },
+                    padding,
+                    onOpenAccess = { navigateTo("access") },
+                    onOpenDashboard = { openTab(Tab.DASHBOARD) },
+                )
+            }
+            composable("thermal") {
+                ThermalScreen(
+                    viewModel { ThermalViewModel(container) },
+                    padding,
+                    onOpenAccess = { navigateTo("access") },
+                    onOpenDashboard = { openTab(Tab.DASHBOARD) },
+                )
+            }
+            composable("settings") { SettingsScreen(viewModel { SettingsViewModel(container) }, padding) }
         }
     }
 }

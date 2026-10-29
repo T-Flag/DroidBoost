@@ -53,7 +53,13 @@ import java.util.Locale
 private val DATE = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.FRANCE)
 
 @Composable
-fun DashboardScreen(viewModel: DashboardViewModel, contentPadding: PaddingValues, onOpenAccess: () -> Unit) {
+fun DashboardScreen(
+    viewModel: DashboardViewModel,
+    contentPadding: PaddingValues,
+    onOpenAccess: () -> Unit,
+    onOpenBattery: () -> Unit,
+    onOpenThermal: () -> Unit,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val shizukuReady = state.shizuku is ShizukuState.Ready
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -91,8 +97,8 @@ fun DashboardScreen(viewModel: DashboardViewModel, contentPadding: PaddingValues
                 )
             }
         }
-        state.battery?.let { battery -> item { BatteryCard(battery, state.hasBatteryStats, onOpenAccess) } }
-        state.thermal?.let { thermal -> item { ThermalCard(thermal, shizukuReady, onOpenAccess) } }
+        state.battery?.let { battery -> item { BatteryCard(battery, state.hasBatteryStats, onOpenAccess, onOpenBattery) } }
+        state.thermal?.let { thermal -> item { ThermalCard(thermal, shizukuReady, onOpenAccess, onOpenThermal) } }
         state.cpu?.let { cpu -> item { CpuCard(cpu, shizukuReady, onOpenAccess) } }
         state.memory?.let { memory -> item { MemoryCard(memory) } }
         item {
@@ -125,12 +131,13 @@ fun DashboardScreen(viewModel: DashboardViewModel, contentPadding: PaddingValues
 }
 
 @Composable
-private fun BatteryCard(battery: BatterySnapshot, hasBatteryStats: Boolean, onOpenAccess: () -> Unit) {
+private fun BatteryCard(battery: BatterySnapshot, hasBatteryStats: Boolean, onOpenAccess: () -> Unit, onOpen: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     SectionCard(
         "Batterie",
         Icons.Outlined.BatteryChargingFull,
         trailing = { StatusPill(battery.statusLabel, if (battery.isCharging) colors.ok else colors.primary) },
+        onClick = onOpen,
     ) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text("${battery.levelPercent} %", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
@@ -169,14 +176,14 @@ private fun BatteryCard(battery: BatterySnapshot, hasBatteryStats: Boolean, onOp
 }
 
 @Composable
-private fun ThermalCard(thermal: ThermalSnapshot, shizukuReady: Boolean, onOpenAccess: () -> Unit) {
+private fun ThermalCard(thermal: ThermalSnapshot, shizukuReady: Boolean, onOpenAccess: () -> Unit, onOpen: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val statusColor = when {
         thermal.status.level >= ThermalStatus.SEVERE.level -> colors.critical
         thermal.status.level >= ThermalStatus.LIGHT.level -> colors.warning
         else -> colors.ok
     }
-    SectionCard("Thermique", Icons.Outlined.Thermostat, trailing = { StatusPill(thermal.status.label, statusColor) }) {
+    SectionCard("Thermique", Icons.Outlined.Thermostat, trailing = { StatusPill(thermal.status.label, statusColor) }, onClick = onOpen) {
         thermal.headroom?.let { headroom ->
             MetricRow("Marge avant bridage sévère", Formats.percent(1f - headroom.coerceIn(0f, 1f)))
             LevelBar(headroom, color = if (headroom >= 0.85f) colors.critical else if (headroom >= 0.6f) colors.warning else colors.primary)

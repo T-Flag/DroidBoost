@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
@@ -17,8 +18,11 @@ import fr.tflag.droidboost.system.BatterySnapshot
 import fr.tflag.droidboost.system.MemorySnapshot
 import fr.tflag.droidboost.system.NetworkSpeed
 import fr.tflag.droidboost.system.ThermalSnapshot
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -38,7 +42,8 @@ class MonitorService : LifecycleService() {
             return START_NOT_STICKY
         }
         startForeground(NOTIFICATION_ID, buildNotification("Démarrage…", ""), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
-        if (loop == null) loop = lifecycleScope.launch { sampleForever() }
+        // Readings and database writes stay off the main thread.
+        if (loop == null) loop = lifecycleScope.launch(Dispatchers.Default) { sampleForever() }
         return START_STICKY
     }
 
@@ -47,15 +52,24 @@ class MonitorService : LifecycleService() {
         val thermal = container.newThermalReader()
         val memory = container.newMemoryReader()
         val network = container.newNetworkSpeedReader()
+        val recorder = Recorder(container, AlertNotifier(this))
         val notifications = getSystemService(NotificationManager::class.java)
+        val config = container.monitorSettings.config.stateIn(lifecycleScope, SharingStarted.Eagerly, MonitorConfig())
+        recorder.start()
         network.read()
         while (lifecycleScope.isActive) {
             val battery = container.battery.read()
+            val thermalSnapshot = thermal.read(includeHal = false)
+            val memorySnapshot = memory.read()
+            val speed = network.read()
+            runCatching {
+                recorder.tick(System.currentTimeMillis(), battery, thermalSnapshot, memorySnapshot, speed, config.value)
+            }.onFailure { Log.w(TAG, "Enregistrement de l'historique impossible", it) }
             val title = battery?.let(::batteryLine) ?: "DroidBoost"
             val text = listOfNotNull(
-                thermalLine(thermal.read(includeHal = false)),
-                memoryLine(memory.read()),
-                network.read()?.let(::networkLine),
+                thermalLine(thermalSnapshot),
+                memoryLine(memorySnapshot),
+                speed?.let(::networkLine),
             ).joinToString(" · ")
             notifications.notify(NOTIFICATION_ID, buildNotification(title, text))
             delay(REFRESH_MS)
@@ -101,6 +115,7 @@ class MonitorService : LifecycleService() {
 
     companion object {
         const val CHANNEL_ID = "monitor"
+        private const val TAG = "MonitorService"
         private const val NOTIFICATION_ID = 1
         private const val REFRESH_MS = 5_000L
         private const val ACTION_STOP = "fr.tflag.droidboost.action.STOP_MONITOR"

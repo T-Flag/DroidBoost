@@ -5,6 +5,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import fr.tflag.droidboost.access.AccessChecker
 import fr.tflag.droidboost.apps.AppActions
 import fr.tflag.droidboost.apps.AppRepository
+import fr.tflag.droidboost.data.HistoryDatabase
+import fr.tflag.droidboost.data.HistoryRepository
 import fr.tflag.droidboost.monitor.MonitorSettings
 import fr.tflag.droidboost.shell.ShizukuShell
 import fr.tflag.droidboost.system.BatteryReader
@@ -27,6 +29,8 @@ class AppContainer(context: Context) {
     val appActions = AppActions(shell)
     val battery = BatteryReader(appContext)
     val monitorSettings = MonitorSettings(appContext.settingsStore)
+    val history: HistoryDatabase by lazy { HistoryDatabase.create(appContext) }
+    val historyRepository: HistoryRepository by lazy { HistoryRepository(history) }
 
     // Readers keeping state between samples: one instance per consumer.
     fun newThermalReader() = ThermalReader(appContext, shell)
