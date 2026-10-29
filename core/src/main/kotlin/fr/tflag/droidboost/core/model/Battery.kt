@@ -5,14 +5,11 @@ import kotlin.math.abs
 object BatteryMath {
 
     /**
-     * `BATTERY_PROPERTY_CURRENT_NOW` is documented in µA, but some devices report mA.
-     * Values this large can only be microamps on a phone.
+     * Magnitude in mA of `BATTERY_PROPERTY_CURRENT_NOW`, which is in µA as documented and as the Pixel 8 Pro reports it.
+     * Guessing the unit from the magnitude misread currents under 10 mA (charge held at 80 %, load matching the
+     * charger) as amps, e.g. 4 692 µA shown as 20 W.
      */
-    private const val MICROAMP_THRESHOLD = 10_000
-
-    /** Magnitude of the current in mA, regardless of the device's unit and sign convention. */
-    fun currentMilliAmps(raw: Int): Double =
-        if (abs(raw) >= MICROAMP_THRESHOLD) abs(raw) / 1000.0 else abs(raw).toDouble()
+    fun currentMilliAmps(raw: Int): Double = abs(raw) / 1000.0
 
     fun powerWatts(voltageMilliVolts: Int, currentMilliAmps: Double): Double =
         voltageMilliVolts / 1000.0 * currentMilliAmps / 1000.0

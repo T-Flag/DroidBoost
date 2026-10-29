@@ -24,7 +24,8 @@ class ModelTest {
     @Test
     fun `normalizes current units`() {
         assertEquals(450.0, BatteryMath.currentMilliAmps(-450_000))
-        assertEquals(450.0, BatteryMath.currentMilliAmps(450))
+        // A current close to zero stays small instead of being read as milliamps.
+        assertEquals(4.692, BatteryMath.currentMilliAmps(4_692), 1e-9)
         assertEquals(3.85 * 1.5, BatteryMath.powerWatts(3850, 1500.0), 1e-9)
     }
 

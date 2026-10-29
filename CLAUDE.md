@@ -58,14 +58,33 @@ local. Il cherche des textes à l'écran : si un libellé change dans l'interfac
   l'historique du téléphone.
 - SDK : compileSdk 37, targetSdk 36, minSdk 34. Les versions des dépendances sont dans `gradle/libs.versions.toml`.
 
-## Pas encore vérifié sur le vrai téléphone
+## Vérifié sur le Pixel 8 Pro (29/10/2026)
 
-Jusqu'ici, l'appli n'a été testée que sur émulateur (API 35). Points à confirmer sur le Pixel 8 Pro branché en ADB :
+Android 17, build `CP3A.261005.005`, correctif du 5 octobre 2026. Variante debug installée par ADB, sans Shizuku (pas
+installé sur le téléphone) :
 
-- fréquences CPU lisibles dans sysfs ;
-- températures du HAL via DUMP ;
-- rails ODPM (`ACCESS_FINE_POWER_MONITORS`) ;
-- santé et capacité de la batterie (propriétés privilégiées de `BatteryManager`) ;
-- repli de `pm uninstall --user 0` sur `pm disable-user` quand Android 17 refuse ;
-- disponibilité de `appops query-op` et de `pm archive` ;
-- widget, tuiles et overlay en usage réel.
+- **Fréquences CPU** : lisibles dans sysfs depuis l'appli. 9 cœurs : 0-3 jusqu'à 1,70 GHz, 4-7 jusqu'à 2,37 GHz,
+  8 jusqu'à 2,91 GHz. `/proc/stat` reste refusé à l'appli : la charge CPU demande Shizuku.
+- **Températures du HAL** : lues via DUMP sans Shizuku (HAL thermique AIDL v3, une trentaine de capteurs). Beaucoup de
+  capteurs Pixel ont le type -1 et s'affichent « Inconnu ».
+- **Rails ODPM** : 24 rails lus avec `ACCESS_FINE_POWER_MONITORS`. L'API renvoie aussi les consommateurs d'énergie
+  dérivés (`DISPLAY`, `CPU/0`…), écartés de l'affichage pour ne pas compter deux fois la même énergie.
+- **Batterie** : dates de fabrication et de première utilisation, cycles et `STATE_OF_HEALTH` lisibles avec
+  BATTERY_STATS. Mais le Pixel publie 100 % (`health_index=100`, `health_status=-1`, indice non calibré) alors que la
+  jauge a appris 4 594 mAh pour 5 022 mAh nominaux (≈ 91 %) : la santé système n'est pas fiable sur ce téléphone.
+  `/sys/class/power_supply` est refusé à l'appli ; la capacité apprise se lit dans `dumpsys batterystats`.
+- **`pm uninstall -k --user 0`** sur une appli système : Android 17 refuse avec
+  `Failure [only root can delete system app for a particular user]`, que `CommandOutcome` reconnaît.
+  `pm disable-user --user 0` et `pm enable --user 0` fonctionnent.
+- **`appops query-op <OP> allow`** : disponible, un paquet par ligne. **`pm archive`** : disponible ; il refuse les
+  applis sans installeur (`No installer found`), donc celles installées par ADB.
+- **`dumpsys batterystats`** : sur Android 17, les lignes `UID` sont au même niveau d'indentation que l'en-tête
+  « Estimated power use ».
+- **Courant batterie** : `BATTERY_PROPERTY_CURRENT_NOW` est en µA. Près de zéro (charge à l'arrêt à 80 %,
+  consommation égale à l'apport du chargeur), une valeur sous 10 000 est bien des µA, pas des mA.
+- **Service de premier plan, notification, overlay** (rafraîchi chaque seconde), **tuiles** (sous-titres, toucher) et
+  **widget** (rafraîchi chaque minute par le service) : OK. Une mise à jour de l'appli arrête le service : il est
+  relancé par `MY_PACKAGE_REPLACED`.
+
+Reste à vérifier : charge CPU, actions sur les applis et purge des caches via Shizuku ; `pm archive` sur une appli du
+Play Store.

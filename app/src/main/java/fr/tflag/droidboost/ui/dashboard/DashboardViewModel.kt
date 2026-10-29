@@ -62,10 +62,11 @@ class DashboardViewModel(private val container: AppContainer) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardState())
 
     private suspend fun sample(tick: Int): DashboardState {
-        // The thermal dump costs a process spawn: refresh it every other tick and keep the last one meanwhile.
-        val thermal = thermalReader.read(includeHal = tick % HAL_EVERY_TICKS == 0)
-        if (thermal.hal != null) lastHal = thermal.hal
-        if (!container.shell.isReady) lastHal = null
+        // The thermal dump is costly: refresh it every other tick and keep the last one meanwhile.
+        // It comes from DUMP or Shizuku, so a failed dump (both gone) clears it rather than the Shizuku state.
+        val includeHal = tick % HAL_EVERY_TICKS == 0
+        val thermal = thermalReader.read(includeHal)
+        if (includeHal) lastHal = thermal.hal
         return DashboardState(
             battery = container.battery.read(),
             thermal = thermal.copy(hal = lastHal),

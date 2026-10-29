@@ -20,10 +20,11 @@ object BatteryStatsParser {
         val header = lines.indexOfFirst { it.trimStart().startsWith("Estimated power use") }
         if (header < 0) return emptyList()
         val headerIndent = indent(lines[header])
-        // The section ends at the next line indented like (or less than) its header.
+        // The section ends at the next line indented like (or less than) its header, except UID lines:
+        // Android 17 prints them at the header indent instead of nesting them.
         return lines.asSequence()
             .drop(header + 1)
-            .takeWhile { it.isBlank() || indent(it) > headerIndent }
+            .takeWhile { it.isBlank() || indent(it) > headerIndent || UID_LINE.containsMatchIn(it) }
             .mapNotNull { line ->
                 val match = UID_LINE.find(line) ?: return@mapNotNull null
                 val uid = toUid(match.groupValues[1]) ?: return@mapNotNull null

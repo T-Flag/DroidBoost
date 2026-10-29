@@ -179,16 +179,19 @@ private fun AppUsageCard(state: BatteryScreenState, onRefresh: () -> Unit, onOpe
 
 @Composable
 private fun RailsCard(state: BatteryScreenState) {
+    // The API lists the ODPM rails and the energy consumers derived from them (DISPLAY, CPU/0…):
+    // keep the rails only, otherwise the same energy shows twice.
+    val rails = state.rails.filterNot { it.isConsumer }.ifEmpty { state.rails }
     SectionCard("Énergie par composant", Icons.Outlined.ElectricBolt) {
-        if (state.rails.isEmpty()) {
+        if (rails.isEmpty()) {
             Text(
                 "Mesure en cours (environ 20 s), ou capteurs d'énergie non exposés par ce téléphone.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        val max = state.rails.maxOfOrNull { it.watts }?.takeIf { it > 0 } ?: 1.0
-        state.rails.forEach { rail ->
+        val max = rails.maxOfOrNull { it.watts }?.takeIf { it > 0 } ?: 1.0
+        rails.forEach { rail ->
             MetricRow(rail.name, Formats.watts(rail.watts))
             LevelBar((rail.watts / max).toFloat())
         }

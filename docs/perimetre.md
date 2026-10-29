@@ -34,7 +34,8 @@ targetSdk 36, minSdk 34, Shizuku API 13.1.5, Room, WorkManager, DataStore.
 Légende du niveau : **A**, **B**, **C** comme ci-dessus.
 
 **État au 29/10/2026 : les six phases sont implémentées** (compilées par la CI et vérifiées écran par écran
-sur émulateur), à valider sur le Pixel 8 Pro réel. Écarts par rapport au plan initial :
+sur émulateur), puis vérifiées sur le Pixel 8 Pro réel sans Shizuku (résultats dans `CLAUDE.md`). Écarts par
+rapport au plan initial :
 
 - L'historique des AppOps (micro, caméra, localisation au-delà de 7 jours) est reporté : le format de
   `dumpsys appops` doit d'abord être relevé sur le téléphone.

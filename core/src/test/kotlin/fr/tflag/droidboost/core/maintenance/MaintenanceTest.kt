@@ -62,6 +62,34 @@ class MaintenanceTest {
     }
 
     @Test
+    fun `parses estimated power use when uids sit at the header indent`() {
+        // Android 17 on a Pixel 8 Pro: UID lines are no longer nested under the section header.
+        val dump = """
+            Statistics since last charge:
+              Estimated power use (mAh):
+                Capacity: 4654, Computed drain: 315, actual drain: 315
+                Global
+                screen: 28.4 apps: 0
+                cpu: 87.1 apps: 89.7 duration: 57m 1s 58ms
+                  (on battery, screen on)
+                    cpu: 0.0252 apps: 0.0245 duration: 1s 97ms
+              UID 1000: 32.0 bg: 32.0
+                  cpu=24.1 cpu:bg=24.1 camera=5.09 (20s 363ms)
+                  (on battery, screen on) cpu=8.51 cpu:bg=8.51
+              UID u0a188: 17.4 fg: 1.43 (3m 10s 148ms) bg: 8.85 (18m 27s 79ms) cached: 7.14 (3h 3m 17s 563ms)
+                  cpu=17.4
+              UID 1095: 0.000113 bg: 0.000113
+
+              Per-app mobile ms per packet:
+                Uid 0: 781 (32 packets over 25s 4ms) 5x
+        """.trimIndent()
+        val power = BatteryStatsParser.parse(dump)
+        assertEquals(listOf(1000, 10188, 1095), power.map { it.uid })
+        assertEquals(32.0, power[0].mah)
+        assertEquals(17.4, power[1].mah)
+    }
+
+    @Test
     fun `converts uid labels`() {
         assertEquals(10123, BatteryStatsParser.toUid("u0a123"))
         assertEquals(1010123, BatteryStatsParser.toUid("u10a123"))
