@@ -30,6 +30,12 @@ class ModelTest {
     }
 
     @Test
+    fun `names hal sensors without an unknown type label`() {
+        assertEquals("BIG · CPU", TemperatureTypes.displayName(HalTemperature("BIG", type = 0, celsius = 35f, status = 0)))
+        assertEquals("thb_hda", TemperatureTypes.displayName(HalTemperature("thb_hda", type = -1, celsius = 54f, status = 0)))
+    }
+
+    @Test
     fun `computes deep sleep share`() {
         assertEquals(0.75f, BatteryMath.deepSleepFraction(elapsedRealtimeMs = 4000, uptimeMs = 1000))
         assertEquals(0f, BatteryMath.deepSleepFraction(0, 0))

@@ -41,6 +41,8 @@ data class BatteryScreenState(
     val sessions: List<ChargeSessionEntity> = emptyList(),
     val designCapacityMah: Int? = null,
     val gaugeCapacityMah: Double? = null,
+    /** Full capacity learned by the fuel gauge, from `dumpsys batterystats`. */
+    val learnedCapacityMah: Int? = null,
     val sessionCapacityMah: Double? = null,
     val hasBatteryStats: Boolean = false,
     val monitorEnabled: Boolean = false,
@@ -120,8 +122,19 @@ class BatteryViewModel(private val container: AppContainer) : ViewModel() {
         )
     }
 
-    val state: StateFlow<BatteryScreenState> = combine(base, appUsage, rails) { screen, (usage, loading), railPower ->
-        screen.copy(appUsage = usage, appUsageLoading = loading, rails = railPower, railsSupported = railsReader.isSupported)
+    private val learnedCapacity = flow {
+        emit(null)
+        emit(container.batteryUsage.learnedCapacityMah())
+    }.flowOn(Dispatchers.IO)
+
+    val state: StateFlow<BatteryScreenState> = combine(base, appUsage, rails, learnedCapacity) { screen, (usage, loading), railPower, learned ->
+        screen.copy(
+            appUsage = usage,
+            appUsageLoading = loading,
+            rails = railPower,
+            railsSupported = railsReader.isSupported,
+            learnedCapacityMah = learned,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BatteryScreenState(designCapacityMah = design))
 
     init {

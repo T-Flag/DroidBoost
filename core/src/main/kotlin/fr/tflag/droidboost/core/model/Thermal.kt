@@ -70,7 +70,13 @@ object TemperatureTypes {
         19 to "Pogo",
     )
 
+    const val UNKNOWN = -1
+
     fun label(type: Int): String = LABELS[type] ?: "Type $type"
+
+    /** "BIG · CPU" for typed sensors; vendor sensors of unknown type (most of the Pixel's) keep their own name. */
+    fun displayName(sensor: HalTemperature): String =
+        if (sensor.type == UNKNOWN) sensor.name else "${sensor.name} · ${label(sensor.type)}"
 
     /** BCL sensors report volts, amps or percent, not degrees. */
     fun isTemperature(type: Int): Boolean = type !in 6..8

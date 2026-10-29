@@ -195,7 +195,8 @@ class Recorder(private val container: AppContainer, private val alerts: AlertNot
             cpu.read().totalLoad?.let { add(Metrics.CPU_LOAD, it.toDouble()) }
         }
         container.dumper.dump("thermalservice")?.let(ThermalDumpParser::parse)?.temperatures
-            ?.filter { TemperatureTypes.isTemperature(it.type) }
+            // Untyped vendor sensors mix temperatures, offsets and flags: their maximum would mean nothing.
+            ?.filter { TemperatureTypes.isTemperature(it.type) && it.type != TemperatureTypes.UNKNOWN }
             ?.groupBy { TemperatureTypes.label(it.type) }
             ?.forEach { (type, sensors) -> add(Metrics.HAL_TEMPERATURE, sensors.maxOf { it.celsius }.toDouble(), tag = type) }
         rails.read().forEach { add(Metrics.POWER_RAIL, it.watts, tag = it.name) }

@@ -127,9 +127,13 @@ private fun HealthCard(state: BatteryScreenState, onOpenAccess: () -> Unit) {
             !state.hasBatteryStats -> MissingAccessHint("La santé officielle demande BATTERY_STATS.", "Accorder", onOpenAccess)
             else -> MetricRow("Santé déclarée par le système", "Non communiquée")
         }
+        state.learnedCapacityMah?.let { learned ->
+            val health = design?.let { " · ${Formats.percent(BatteryHealth.healthFraction(learned.toDouble(), it))}" }.orEmpty()
+            MetricRow("Capacité apprise par la jauge", "${Formats.number(learned.toLong())} mAh$health")
+        }
         state.gaugeCapacityMah?.let { gauge ->
             val health = design?.let { " · ${Formats.percent(BatteryHealth.healthFraction(gauge, it))}" }.orEmpty()
-            MetricRow("Capacité vue par la jauge", "${Formats.number(gauge.toLong())} mAh$health")
+            MetricRow("Capacité d'après la charge restante", "${Formats.number(gauge.toLong())} mAh$health")
         }
         state.sessionCapacityMah?.let { estimate ->
             val health = design?.let { " · ${Formats.percent(BatteryHealth.healthFraction(estimate, it))}" }.orEmpty()
@@ -141,8 +145,9 @@ private fun HealthCard(state: BatteryScreenState, onOpenAccess: () -> Unit) {
         )
         battery?.cycleCount?.let { MetricRow("Cycles de charge", it.toString()) }
         Text(
-            "Google n'affiche pas la santé dans les Réglages du Pixel 8 Pro ; ces valeurs viennent de l'API batterie et " +
-                "de vos sessions de charge. Repère Google : environ 80 % après 800 cycles.",
+            "Google n'affiche pas la santé dans les Réglages du Pixel 8 Pro, et celle déclarée par le système y reste à " +
+                "100 % : la capacité apprise par la jauge est l'estimation la plus fiable. Repère Google : environ 80 % " +
+                "après 800 cycles.",
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant,
         )

@@ -89,9 +89,21 @@ class JournalRecorder(
     }
 
     private suspend fun snapshotPackages() {
-        val current = currentStates()
         val dao = db.packageSnapshots()
         val stored = dao.all()
+        val previous = stored.associateBy { it.packageName }
+        // An archived app reports neither version nor permissions: keep the last known ones, so archiving and
+        // restoring it only log that change.
+        val current = currentStates().map { state ->
+            val was = previous[state.packageName]
+            if (was == null || state.installedForUser || !isArchived(state.packageName)) return@map state
+            state.copy(
+                versionName = was.versionName,
+                versionCode = was.versionCode,
+                lastUpdateTime = was.lastUpdateTime,
+                grantedPermissions = was.toState().grantedPermissions,
+            )
+        }
         if (stored.isEmpty()) {
             insert(
                 JournalEventEntity(
@@ -168,6 +180,12 @@ class JournalRecorder(
         runCatching { pm.getPermissionInfo(permission, 0).protection == PermissionInfo.PROTECTION_DANGEROUS }.getOrDefault(false)
     }
 
+    /** `pm archive` also clears FLAG_INSTALLED: tell it apart from a removal for user 0. */
+    private fun isArchived(packageName: String): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM && runCatching {
+            pm.getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(PackageManager.MATCH_UNINSTALLED_PACKAGES.toLong())).isArchived
+        }.getOrDefault(false)
+
     private fun label(info: PackageInfo): String =
         info.applicationInfo?.let { runCatching { it.loadLabel(pm).toString() }.getOrNull() } ?: info.packageName
 
@@ -184,7 +202,11 @@ class JournalRecorder(
                 Triple(JournalTypes.APP, (if (change.enabled) "Réactivée : " else "Désactivée : ") + change.label, null)
             is PackageChange.InstalledForUserChanged -> Triple(
                 JournalTypes.APP,
-                (if (change.installed) "Réinstallée : " else "Retirée pour l'utilisateur : ") + change.label,
+                when {
+                    change.installed -> "Réinstallée : "
+                    isArchived(change.packageName) -> "Archivée : "
+                    else -> "Retirée pour l'utilisateur : "
+                } + change.label,
                 null,
             )
             is PackageChange.PermissionGranted ->

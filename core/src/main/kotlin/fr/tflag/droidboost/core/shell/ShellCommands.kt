@@ -50,6 +50,9 @@ object ShellCommands {
     /** Archives an app (Android 15+): APK and cache removed, data kept, icon restorable from the launcher. */
     fun archive(packageName: String) = "pm archive --user 0 ${pkg(packageName)}"
 
+    /** Asks the installer that archived the app (usually the Play Store) to download it again. */
+    fun requestUnarchive(packageName: String) = "pm request-unarchive --user 0 ${pkg(packageName)}"
+
     /** Lists the per-app folders of a shared-storage area only the shell can read (Android/data, obb, media). */
     fun listAppFolders(area: AppFolderArea) = "ls -1 ${area.path}"
 

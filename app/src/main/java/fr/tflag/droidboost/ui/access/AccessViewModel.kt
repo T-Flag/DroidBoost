@@ -8,6 +8,7 @@ import fr.tflag.droidboost.core.shell.CommandOutcome
 import fr.tflag.droidboost.core.shell.ShellCommands
 import fr.tflag.droidboost.shell.ShizukuState
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -55,17 +56,25 @@ class AccessViewModel(private val container: AppContainer) : ViewModel() {
 
     fun requestShizukuPermission() = container.shell.requestPermission()
 
-    /** Grants every development permission through Shizuku; they then persist without it. */
+    /**
+     * Grants every development permission through Shizuku; they then persist without it.
+     * A grant that restarts the app ends this coroutine, so those go last, once everything else is done.
+     */
     fun grantAllViaShizuku() {
         if (content.value.granting) return
         viewModelScope.launch {
             content.value = content.value.copy(granting = true)
             val pkg = container.packageName
-            val failures = DevGrant.entries
-                .filterNot(container.access::isGranted)
-                .map { it to container.shell.run(ShellCommands.grant(pkg, it.permission)) }
-                .filter { (_, outcome) -> outcome !is CommandOutcome.Success }
             container.shell.run(ShellCommands.allowUsageStats(pkg))
+            val (restarting, others) = DevGrant.entries.filterNot(container.access::isGranted).partition { it.restartsApp }
+            suspend fun grant(entry: DevGrant) = entry to container.shell.run(ShellCommands.grant(pkg, entry.permission))
+            val failures = others.map { grant(it) }.filter { (_, outcome) -> outcome !is CommandOutcome.Success }.toMutableList()
+            if (restarting.isNotEmpty()) {
+                _messages.send("DroidBoost va redémarrer pour appliquer : ${restarting.joinToString { it.title }}")
+                delay(RESTART_NOTICE_MS)
+                // A successful grant kills the app here: a result only comes back when it failed.
+                failures += restarting.map { grant(it) }.filter { (_, outcome) -> outcome !is CommandOutcome.Success }
+            }
             content.value = content.value.copy(granting = false)
             refresh()
             _messages.send(
@@ -73,5 +82,10 @@ class AccessViewModel(private val container: AppContainer) : ViewModel() {
                 else "Échec pour : ${failures.joinToString { it.first.title }}",
             )
         }
+    }
+
+    private companion object {
+        /** Long enough to read the restart notice before Android kills the app. */
+        const val RESTART_NOTICE_MS = 1_500L
     }
 }

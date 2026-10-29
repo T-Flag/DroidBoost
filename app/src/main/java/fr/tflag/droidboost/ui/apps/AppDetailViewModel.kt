@@ -1,5 +1,6 @@
 package fr.tflag.droidboost.ui.apps
 
+import android.content.pm.PackageManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fr.tflag.droidboost.AppContainer
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class AppDetailState(
@@ -58,24 +60,22 @@ class AppDetailViewModel(private val container: AppContainer, private val packag
         }
     }
 
+    // Both loaders run concurrently: query first, then merge into the current state. Copying a state read before
+    // the queries overwrote the other loader's result and could leave the screen loading forever.
     fun reload() {
         viewModelScope.launch {
             val app = container.apps.load(packageName)
-            content.value = content.value.copy(
-                loading = false,
-                app = app,
-                permissions = if (app?.installedForUser == true) container.apps.permissions(packageName) else emptyList(),
-            )
+            val permissions = if (app?.installedForUser == true) container.apps.permissions(packageName) else emptyList()
+            content.update { it.copy(loading = false, app = app, permissions = permissions) }
             loadPrivileged()
         }
     }
 
     private suspend fun loadPrivileged() {
         if (!container.shell.isReady) return
-        content.value = content.value.copy(
-            standbyBucket = container.appActions.standbyBucket(packageName),
-            backgroundRestricted = container.appActions.isBackgroundRestricted(packageName),
-        )
+        val bucket = container.appActions.standbyBucket(packageName)
+        val restricted = container.appActions.isBackgroundRestricted(packageName)
+        content.update { it.copy(standbyBucket = bucket, backgroundRestricted = restricted) }
     }
 
     fun forceStop() = act("Appli arrêtée") { forceStop(packageName) }
@@ -98,7 +98,15 @@ class AppDetailViewModel(private val container: AppContainer, private val packag
     fun clearData() = act("Données effacées") { clearData(packageName) }
 
     fun setPermission(permission: String, granted: Boolean) =
-        act(if (granted) "Permission accordée" else "Permission révoquée") { setPermission(packageName, permission, granted) }
+        act(if (granted) "Permission accordée" else "Permission révoquée") {
+            val outcome = setPermission(packageName, permission, granted)
+            // `pm` answers success while Android 17 keeps some compatibility grants, such as ACCESS_LOCAL_NETWORK
+            // for apps targeting an older SDK: check the real state.
+            val now = container.appContext.packageManager.checkPermission(permission, packageName) == PackageManager.PERMISSION_GRANTED
+            if (outcome is CommandOutcome.Success && now != granted) CommandOutcome.Failed("Android garde cette permission inchangée") else outcome
+        }
+
+    fun unarchive() = act("Désarchivage demandé : l'installeur retélécharge l'appli") { unarchive(packageName) }
 
     fun setStandbyBucket(bucket: StandbyBucket) = act("Bucket de veille modifié") { setStandbyBucket(packageName, bucket) }
 

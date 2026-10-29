@@ -48,6 +48,24 @@ class JournalTest {
     }
 
     @Test
+    fun `restoring an archived app is not an update`() {
+        val archived = state("com.a.compass", installed = false)
+        val restored = state("com.a.compass").copy(lastUpdateTime = 99_000)
+        assertEquals(
+            listOf(PackageChange.InstalledForUserChanged("com.a.compass", "compass", true)),
+            PackageDiff.diff(listOf(archived), listOf(restored)),
+        )
+        val upgraded = state("com.a.compass", version = 2)
+        assertEquals(
+            listOf(
+                PackageChange.Updated("com.a.compass", "compass", "v1", "v2"),
+                PackageChange.InstalledForUserChanged("com.a.compass", "compass", true),
+            ),
+            PackageDiff.diff(listOf(archived), listOf(upgraded)),
+        )
+    }
+
+    @Test
     fun `no change between identical snapshots`() {
         val snapshot = listOf(state("com.a"), state("com.b", perms = setOf("x.Y")))
         assertEquals(emptyList(), PackageDiff.diff(snapshot, snapshot))

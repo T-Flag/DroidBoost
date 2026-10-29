@@ -1,10 +1,12 @@
 package fr.tflag.droidboost.ui.dashboard
 
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fr.tflag.droidboost.AppContainer
 import fr.tflag.droidboost.access.DevGrant
 import fr.tflag.droidboost.core.model.ThermalDump
+import fr.tflag.droidboost.core.monitor.BatteryHealth
 import fr.tflag.droidboost.monitor.MonitorService
 import fr.tflag.droidboost.shell.ShizukuState
 import fr.tflag.droidboost.system.BatterySnapshot
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -36,6 +39,9 @@ data class DashboardState(
     val shizuku: ShizukuState = ShizukuState.Unavailable,
     val hasBatteryStats: Boolean = false,
     val monitorEnabled: Boolean = false,
+    val designCapacityMah: Int? = null,
+    /** From `dumpsys batterystats` (DUMP or Shizuku). */
+    val learnedCapacityMah: Int? = null,
 )
 
 class DashboardViewModel(private val container: AppContainer) : ViewModel() {
@@ -54,12 +60,22 @@ class DashboardViewModel(private val container: AppContainer) : ViewModel() {
         }
     }.flowOn(Dispatchers.IO)
 
+    /** The learned capacity moves by a few mAh a day: no need to dump batterystats more than every half hour. */
+    private val learnedCapacity = flow {
+        while (true) {
+            emit(container.batteryUsage.learnedCapacityMah())
+            delay(LEARNED_CAPACITY_REFRESH_MS)
+        }
+    }.flowOn(Dispatchers.IO)
+
     val state: StateFlow<DashboardState> = combine(
         samples,
         container.shell.state,
         container.monitorSettings.enabled,
-    ) { sample, shizuku, monitor -> sample.copy(shizuku = shizuku, monitorEnabled = monitor) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardState())
+        learnedCapacity.onStart { emit(null) },
+    ) { sample, shizuku, monitor, learned ->
+        sample.copy(shizuku = shizuku, monitorEnabled = monitor, learnedCapacityMah = learned)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardState())
 
     private suspend fun sample(tick: Int): DashboardState {
         // The thermal dump is costly: refresh it every other tick and keep the last one meanwhile.
@@ -76,6 +92,7 @@ class DashboardViewModel(private val container: AppContainer) : ViewModel() {
             network = networkReader.read(),
             system = DeviceInfo.read(),
             hasBatteryStats = container.access.isGranted(DevGrant.BATTERY_STATS),
+            designCapacityMah = BatteryHealth.designCapacityMah(Build.DEVICE),
         )
     }
 
@@ -89,5 +106,6 @@ class DashboardViewModel(private val container: AppContainer) : ViewModel() {
     private companion object {
         const val REFRESH_MS = 1_000L
         const val HAL_EVERY_TICKS = 2
+        const val LEARNED_CAPACITY_REFRESH_MS = 30 * 60_000L
     }
 }

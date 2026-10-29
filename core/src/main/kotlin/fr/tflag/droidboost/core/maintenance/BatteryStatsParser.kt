@@ -36,6 +36,15 @@ object BatteryStatsParser {
             .sortedByDescending { it.mah }
     }
 
+    private val LEARNED_CAPACITY = Regex("Last learned battery capacity:\\s*(\\d+)\\s*mAh")
+
+    /**
+     * Full capacity the fuel gauge has learned (`Last learned battery capacity: 4596 mAh`). On the Pixel 8 Pro it is
+     * the only realistic health source: the system state of health stays at 100 %.
+     */
+    fun learnedCapacityMah(dump: String): Int? =
+        LEARNED_CAPACITY.find(dump)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it > 0 }
+
     private fun indent(line: String): Int = line.length - line.trimStart().length
 
     /** `u0a123` → 10123, `u0s1000`-style system ids keep their app id, plain numbers stay as is. */

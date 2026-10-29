@@ -25,6 +25,13 @@ class BatteryUsageReader(private val context: Context, private val dumper: Servi
         }
     }
 
+    /**
+     * Capacity learned by the fuel gauge. Filtering the dump on our own package keeps it to ~0.6 MB, and the
+     * capacity lines sit in its global header.
+     */
+    suspend fun learnedCapacityMah(): Int? =
+        dumper.dump("batterystats", listOf("--charged", context.packageName))?.let(BatteryStatsParser::learnedCapacityMah)
+
     private companion object {
         const val SYSTEM_UID = 1000
         const val FIRST_APP_UID = 10_000

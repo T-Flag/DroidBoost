@@ -90,6 +90,20 @@ class MaintenanceTest {
     }
 
     @Test
+    fun `reads the learned battery capacity`() {
+        val dump = """
+            Statistics since last charge:
+              Estimated battery capacity: 4654 mAh
+              Last learned battery capacity: 4596 mAh
+              Min learned battery capacity: 4592 mAh
+              Max learned battery capacity: 4596 mAh
+        """.trimIndent()
+        assertEquals(4596, BatteryStatsParser.learnedCapacityMah(dump))
+        assertEquals(null, BatteryStatsParser.learnedCapacityMah("Last learned battery capacity: 0 mAh"))
+        assertEquals(null, BatteryStatsParser.learnedCapacityMah("Estimated battery capacity: 4654 mAh"))
+    }
+
+    @Test
     fun `converts uid labels`() {
         assertEquals(10123, BatteryStatsParser.toUid("u0a123"))
         assertEquals(1010123, BatteryStatsParser.toUid("u10a123"))

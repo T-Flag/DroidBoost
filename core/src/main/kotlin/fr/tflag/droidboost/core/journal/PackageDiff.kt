@@ -43,7 +43,9 @@ object PackageDiff {
                 changes += PackageChange.Installed(now.packageName, now.label, now.versionName)
                 return@forEach
             }
-            if (now.versionCode != was.versionCode || now.lastUpdateTime != was.lastUpdateTime) {
+            // Restoring an archived app rewrites its APK: that is no update unless the version changed.
+            val reinstalled = now.installedForUser && !was.installedForUser
+            if (now.versionCode != was.versionCode || (now.lastUpdateTime != was.lastUpdateTime && !reinstalled)) {
                 changes += PackageChange.Updated(now.packageName, now.label, was.versionName, now.versionName)
             }
             if (now.installedForUser != was.installedForUser) {

@@ -86,7 +86,7 @@ fun ThermalScreen(viewModel: ThermalViewModel, contentPadding: PaddingValues, on
                         live.hal.temperatures.filter { fr.tflag.droidboost.core.model.TemperatureTypes.isTemperature(it.type) }
                             .sortedByDescending { it.celsius }
                             .take(MAX_LIVE_SENSORS)
-                            .forEach { MetricRow("${it.name} · ${fr.tflag.droidboost.core.model.TemperatureTypes.label(it.type)}", Formats.celsius(it.celsius)) }
+                            .forEach { MetricRow(fr.tflag.droidboost.core.model.TemperatureTypes.displayName(it), Formats.celsius(it.celsius)) }
                     }
                 }
             }

@@ -154,6 +154,7 @@ private fun AppRow(app: AppEntry, sort: AppSort, repository: AppRepository, onCl
         Spacer(Modifier.width(16.dp))
         TwoLineText(app.label, secondary, Modifier.weight(1f))
         when {
+            app.archived -> StatusPill("Archivée", colors.tertiary)
             !app.installedForUser -> StatusPill("Retirée", colors.error)
             app.suspended -> StatusPill("Suspendue", colors.tertiary)
             !app.enabled -> StatusPill("Désactivée", colors.outline)

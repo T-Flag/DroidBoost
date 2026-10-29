@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fr.tflag.droidboost.core.format.Formats
 import fr.tflag.droidboost.core.model.ThermalStatus
 import fr.tflag.droidboost.core.model.TemperatureTypes
+import fr.tflag.droidboost.core.monitor.BatteryHealth
 import fr.tflag.droidboost.shell.ShizukuState
 import fr.tflag.droidboost.system.BatterySnapshot
 import fr.tflag.droidboost.system.CpuSnapshot
@@ -97,7 +98,11 @@ fun DashboardScreen(
                 )
             }
         }
-        state.battery?.let { battery -> item { BatteryCard(battery, state.hasBatteryStats, onOpenAccess, onOpenBattery) } }
+        state.battery?.let { battery ->
+            item {
+                BatteryCard(battery, state.learnedCapacityMah, state.designCapacityMah, state.hasBatteryStats, onOpenAccess, onOpenBattery)
+            }
+        }
         state.thermal?.let { thermal -> item { ThermalCard(thermal, shizukuReady, onOpenAccess, onOpenThermal) } }
         state.cpu?.let { cpu -> item { CpuCard(cpu, shizukuReady, onOpenAccess) } }
         state.memory?.let { memory -> item { MemoryCard(memory) } }
@@ -131,7 +136,14 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun BatteryCard(battery: BatterySnapshot, hasBatteryStats: Boolean, onOpenAccess: () -> Unit, onOpen: () -> Unit) {
+private fun BatteryCard(
+    battery: BatterySnapshot,
+    learnedCapacityMah: Int?,
+    designCapacityMah: Int?,
+    hasBatteryStats: Boolean,
+    onOpenAccess: () -> Unit,
+    onOpen: () -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
     SectionCard(
         "Batterie",
@@ -161,7 +173,15 @@ private fun BatteryCard(battery: BatterySnapshot, hasBatteryStats: Boolean, onOp
         battery.chargeCounterMah?.let { MetricRow("Charge restante", "${Formats.number(it.toLong())} mAh") }
         MetricRow("Cycles de charge", battery.cycleCount?.toString() ?: "Non communiqué")
         MetricRow("État (système)", battery.healthLabel)
+        // The Pixel 8 Pro reports 100 % whatever the wear: prefer the capacity its fuel gauge has learned.
+        val learned = learnedCapacityMah
+        val design = designCapacityMah
         when {
+            learned != null && design != null -> MetricRow(
+                "Santé estimée (jauge)",
+                "${Formats.percent(BatteryHealth.healthFraction(learned.toDouble(), design))} · " +
+                    "${Formats.number(learned.toLong())} / ${Formats.number(design.toLong())} mAh",
+            )
             battery.stateOfHealthPercent != null -> MetricRow("Santé (capacité restante)", "${battery.stateOfHealthPercent} %")
             !hasBatteryStats -> MissingAccessHint(
                 "La santé de la batterie et ses dates demandent la permission BATTERY_STATS.",
@@ -199,7 +219,7 @@ private fun ThermalCard(thermal: ThermalSnapshot, shizukuReady: Boolean, onOpenA
             hal.temperatures.filter { TemperatureTypes.isTemperature(it.type) }.sortedByDescending { it.celsius }.forEach { sensor ->
                 val throttleAt = hal.thresholdFor(sensor)?.firstThrottle
                 MetricRow(
-                    "${sensor.name} · ${TemperatureTypes.label(sensor.type)}",
+                    TemperatureTypes.displayName(sensor),
                     Formats.celsius(sensor.celsius) + (throttleAt?.let { " / ${Formats.celsius(it)}" } ?: ""),
                     valueColor = when {
                         sensor.status >= ThermalStatus.MODERATE.level -> colors.critical

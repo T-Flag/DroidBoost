@@ -60,24 +60,31 @@ local. Il cherche des textes à l'écran : si un libellé change dans l'interfac
 
 ## Vérifié sur le Pixel 8 Pro (29/10/2026)
 
-Android 17, build `CP3A.261005.005`, correctif du 5 octobre 2026. Variante debug installée par ADB, sans Shizuku (pas
-installé sur le téléphone) :
+Android 17, build `CP3A.261005.005`, correctif du 5 octobre 2026. Variante debug installée par ADB, d'abord sans
+Shizuku, puis avec Shizuku 13.6 (Play Store).
+
+### Niveaux A et B
 
 - **Fréquences CPU** : lisibles dans sysfs depuis l'appli. 9 cœurs : 0-3 jusqu'à 1,70 GHz, 4-7 jusqu'à 2,37 GHz,
   8 jusqu'à 2,91 GHz. `/proc/stat` reste refusé à l'appli : la charge CPU demande Shizuku.
-- **Températures du HAL** : lues via DUMP sans Shizuku (HAL thermique AIDL v3, une trentaine de capteurs). Beaucoup de
-  capteurs Pixel ont le type -1 et s'affichent « Inconnu ».
+- **Températures du HAL** : lues via DUMP sans Shizuku (HAL thermique AIDL v3, une trentaine de capteurs). La plupart
+  des capteurs Pixel ont le type -1 : ils s'affichent sous leur seul nom et restent hors de l'historique par type.
 - **Rails ODPM** : 24 rails lus avec `ACCESS_FINE_POWER_MONITORS`. L'API renvoie aussi les consommateurs d'énergie
   dérivés (`DISPLAY`, `CPU/0`…), écartés de l'affichage pour ne pas compter deux fois la même énergie.
 - **Batterie** : dates de fabrication et de première utilisation, cycles et `STATE_OF_HEALTH` lisibles avec
   BATTERY_STATS. Mais le Pixel publie 100 % (`health_index=100`, `health_status=-1`, indice non calibré) alors que la
-  jauge a appris 4 594 mAh pour 5 022 mAh nominaux (≈ 91 %) : la santé système n'est pas fiable sur ce téléphone.
-  `/sys/class/power_supply` est refusé à l'appli ; la capacité apprise se lit dans `dumpsys batterystats`.
+  jauge a appris 4 596 mAh pour 5 050 mAh nominaux (5 022 selon `charge_full_design`), soit ≈ 91 % : la santé
+  système n'est pas fiable sur ce téléphone.
+  `/sys/class/power_supply` est refusé à l'appli. La capacité apprise se lit dans `dumpsys batterystats --charged <paquet>`
+  (≈ 0,6 Mo, contre 20 Mo sans argument) : le tableau de bord en tire la « Santé estimée (jauge) ».
 - **`pm uninstall -k --user 0`** sur une appli système : Android 17 refuse avec
   `Failure [only root can delete system app for a particular user]`, que `CommandOutcome` reconnaît.
   `pm disable-user --user 0` et `pm enable --user 0` fonctionnent.
-- **`appops query-op <OP> allow`** : disponible, un paquet par ligne. **`pm archive`** : disponible ; il refuse les
-  applis sans installeur (`No installer found`), donc celles installées par ADB.
+- **`appops query-op <OP> allow`** : disponible, un paquet par ligne. **`pm archive`** : refuse les applis sans
+  installeur (`No installer found`), donc celles installées par ADB ; archive une appli du Play Store en gardant ses
+  données, et `pm request-unarchive` la fait retélécharger en une dizaine de secondes. Une appli archivée perd
+  `FLAG_INSTALLED` et ne publie plus ni version ni permissions : l'appli la distingue d'un retrait par
+  `ApplicationInfo.isArchived`.
 - **`dumpsys batterystats`** : sur Android 17, les lignes `UID` sont au même niveau d'indentation que l'en-tête
   « Estimated power use ».
 - **Courant batterie** : `BATTERY_PROPERTY_CURRENT_NOW` est en µA. Près de zéro (charge à l'arrêt à 80 %,
@@ -86,5 +93,26 @@ installé sur le téléphone) :
   **widget** (rafraîchi chaque minute par le service) : OK. Une mise à jour de l'appli arrête le service : il est
   relancé par `MY_PACKAGE_REPLACED`.
 
-Reste à vérifier : charge CPU, actions sur les applis et purge des caches via Shizuku ; `pm archive` sur une appli du
-Play Store.
+### Niveau C (Shizuku)
+
+- **Démarrage** : Shizuku 13.6 ne fournit plus `start.sh` ; la commande affichée par l'appli Shizuku est
+  `adb shell /data/app/~~…/moe.shizuku.privileged.api-…/lib/arm64/libshizuku.so`. Elle démarre sous Android 17.
+- **Charge CPU** (totale et par cœur, via `/proc/stat`) et **swap zRAM** : OK, conformes à `/proc/meminfo`.
+- **Vidage global des caches** (`pm trim-caches`) depuis l'écran Stockage et depuis la tuile : OK. Le premier vidage a
+  libéré environ 18 Go et pris une à deux minutes, sous la limite de 120 s.
+- **Octroi des permissions en un geste** : READ_LOGS porte des groupes Linux (`log`, `update_engine_log` dans
+  `platform.xml`) et Android tue l'appli pour l'appliquer. Ce type de permission passe donc en dernier
+  (`DevGrant.restartsApp`), après les autres et après `GET_USAGE_STATS`.
+- **Restes d'applis** (Android/data, obb, media) : listés via Shizuku, résultat identique au contrôle par le shell.
+- **Debloat** : liste et boutons disponibles. Google Wallet et le NFC ne figurent pas au catalogue.
+- **Actions sur une appli** (testées sur `com.vincentlee.compass`) : arrêt forcé, désactivation et réactivation,
+  suspension, accord et retrait d'une permission, bucket de veille, restriction d'arrière-plan, effacement des données,
+  archivage et désarchivage : OK.
+  - `pm enable` laisse l'état « activé » explicite (1) au lieu de l'état par défaut (0) ; `pm default-state` le remet.
+  - `am set-standby-bucket` marque le bucket comme forcé (`reason=f`), même pour revenir à la valeur d'origine.
+  - `pm revoke` répond succès sans rien changer pour `ACCESS_LOCAL_NETWORK` quand Android l'accorde d'office aux
+    applis qui ciblent un SDK antérieur (drapeau `REVOKE_WHEN_REQUESTED`) : l'appli relit l'état réel après chaque
+    changement de permission.
+
+Pas testé, volontairement : `pm uninstall --user 0` sur une appli utilisateur (il la supprime complètement) et la
+relance de Shizuku par le débogage sans fil.

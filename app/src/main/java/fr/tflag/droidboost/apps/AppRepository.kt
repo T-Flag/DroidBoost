@@ -7,6 +7,7 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.PermissionInfo
 import android.graphics.Bitmap
+import android.os.Build
 import android.util.LruCache
 import androidx.core.graphics.drawable.toBitmap
 import fr.tflag.droidboost.system.AppSize
@@ -27,8 +28,10 @@ data class AppEntry(
     val isSystem: Boolean,
     val isUpdatedSystem: Boolean,
     val enabled: Boolean,
-    /** False when removed for user 0 (`pm uninstall -k --user 0`) but still on the system image. */
+    /** False when removed for user 0 (`pm uninstall -k --user 0`) but still on the system image, or archived. */
     val installedForUser: Boolean,
+    /** APK removed by `pm archive` (Android 15+), data kept: the installer can download it again. */
+    val archived: Boolean,
     val suspended: Boolean,
     val stopped: Boolean,
     val versionName: String?,
@@ -110,6 +113,7 @@ class AppRepository(private val context: Context, private val storage: StorageRe
         val app = info.applicationInfo ?: return null
         val flags = app.flags
         val installed = flags and ApplicationInfo.FLAG_INSTALLED != 0
+        val archived = Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM && app.isArchived
         val (lastUsed, foreground) = usageByPackage[info.packageName] ?: (null to null)
         return AppEntry(
             packageName = info.packageName,
@@ -118,6 +122,7 @@ class AppRepository(private val context: Context, private val storage: StorageRe
             isUpdatedSystem = flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0,
             enabled = app.enabled,
             installedForUser = installed,
+            archived = archived,
             suspended = flags and ApplicationInfo.FLAG_SUSPENDED != 0,
             stopped = flags and ApplicationInfo.FLAG_STOPPED != 0,
             versionName = info.versionName,
@@ -126,7 +131,7 @@ class AppRepository(private val context: Context, private val storage: StorageRe
             minSdk = app.minSdkVersion,
             firstInstallTime = info.firstInstallTime,
             lastUpdateTime = info.lastUpdateTime,
-            installer = if (installed) installerOf(info.packageName) else null,
+            installer = if (installed || archived) installerOf(info.packageName) else null,
             size = if (installed) storage.appSize(info.packageName) else null,
             lastUsed = lastUsed?.takeIf { it > 0 },
             foregroundMs30d = foreground,

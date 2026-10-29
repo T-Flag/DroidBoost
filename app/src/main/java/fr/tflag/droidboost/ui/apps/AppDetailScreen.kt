@@ -185,6 +185,8 @@ fun AppDetailScreen(
                         }
                         OutlinedButton(onClick = { confirm = Confirm.CLEAR_DATA }, enabled = destructiveEnabled) { Text("Effacer les données") }
                         OutlinedButton(onClick = { confirm = Confirm.UNINSTALL_FOR_USER }, enabled = destructiveEnabled) { Text("Retirer") }
+                    } else if (app.archived) {
+                        FilledTonalButton(onClick = viewModel::unarchive, enabled = actionsEnabled) { Text("Désarchiver") }
                     } else {
                         FilledTonalButton(onClick = viewModel::reinstall, enabled = actionsEnabled) { Text("Réinstaller") }
                     }
@@ -266,7 +268,8 @@ private fun Header(app: AppEntry, repository: AppRepository) {
             Text(app.packageName, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, color = colors.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 StatusPill(if (app.isSystem) "Système" else "Utilisateur", colors.primary)
-                if (!app.installedForUser) StatusPill("Retirée", colors.error)
+                if (app.archived) StatusPill("Archivée", colors.tertiary)
+                if (!app.installedForUser && !app.archived) StatusPill("Retirée", colors.error)
                 if (app.installedForUser && !app.enabled) StatusPill("Désactivée", colors.outline)
                 if (app.suspended) StatusPill("Suspendue", colors.tertiary)
                 if (app.stopped && app.installedForUser) StatusPill("Arrêtée", colors.outline)

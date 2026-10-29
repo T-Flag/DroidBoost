@@ -14,6 +14,8 @@ class ShellCommandsTest {
         assertEquals("pm uninstall -k --user 0 com.example.app", ShellCommands.uninstallForUser("com.example.app"))
         assertEquals("pm uninstall --user 0 com.example.app", ShellCommands.uninstallForUser("com.example.app", keepData = false))
         assertEquals("cmd package install-existing --user 0 com.example.app", ShellCommands.installExisting("com.example.app"))
+        assertEquals("pm archive --user 0 com.example.app", ShellCommands.archive("com.example.app"))
+        assertEquals("pm request-unarchive --user 0 com.example.app", ShellCommands.requestUnarchive("com.example.app"))
         assertEquals(
             "am set-standby-bucket com.example.app restricted",
             ShellCommands.setStandbyBucket("com.example.app", StandbyBucket.RESTRICTED),

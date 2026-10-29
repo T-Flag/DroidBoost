@@ -94,7 +94,7 @@ fun AccessScreen(viewModel: AccessViewModel, contentPadding: PaddingValues, snac
                 AccessRow("Notifications", "Notification permanente et alertes", state.notifications) {
                     notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
-                AccessRow("Superposition", "Moniteur flottant (à venir)", state.overlay) {
+                AccessRow("Superposition", "Moniteur flottant par-dessus les autres applis", state.overlay) {
                     openSettings(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
                 }
                 Text(

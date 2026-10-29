@@ -24,6 +24,9 @@ class AppActions(private val shell: ShizukuShell) {
 
     suspend fun reinstall(pkg: String) = shell.run(ShellCommands.installExisting(pkg))
 
+    /** For an archived app: `install-existing` cannot help since its APK is gone. */
+    suspend fun unarchive(pkg: String) = shell.run(ShellCommands.requestUnarchive(pkg))
+
     suspend fun clearData(pkg: String) = shell.run(ShellCommands.clearData(pkg))
 
     suspend fun setPermission(pkg: String, permission: String, granted: Boolean) =

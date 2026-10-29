@@ -9,8 +9,11 @@ import android.os.Process
 import android.provider.Settings
 import fr.tflag.droidboost.core.shell.ShellCommands
 
-/** A permission marked `development` in AOSP: granted once with `pm grant`, it survives reboots. */
-enum class DevGrant(val permission: String, val title: String, val unlocks: String) {
+/**
+ * A permission marked `development` in AOSP: granted once with `pm grant`, it survives reboots.
+ * [restartsApp]: the permission maps to Linux groups (`platform.xml`), so Android kills the app to apply it.
+ */
+enum class DevGrant(val permission: String, val title: String, val unlocks: String, val restartsApp: Boolean = false) {
     PACKAGE_USAGE_STATS(
         "android.permission.PACKAGE_USAGE_STATS",
         "Données d'usage",
@@ -35,6 +38,7 @@ enum class DevGrant(val permission: String, val title: String, val unlocks: Stri
         "android.permission.READ_LOGS",
         "Journaux système",
         "Lecture du logcat (au premier plan, après consentement)",
+        restartsApp = true,
     ),
     ACCESS_FINE_POWER_MONITORS(
         "android.permission.ACCESS_FINE_POWER_MONITORS",
