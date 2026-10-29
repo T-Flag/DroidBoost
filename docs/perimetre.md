@@ -33,6 +33,16 @@ targetSdk 36, minSdk 34, Shizuku API 13.1.5, Room, WorkManager, DataStore.
 
 Légende du niveau : **A**, **B**, **C** comme ci-dessus.
 
+**État au 29/10/2026 : les six phases sont implémentées** (compilées par la CI et vérifiées écran par écran
+sur émulateur), à valider sur le Pixel 8 Pro réel. Écarts par rapport au plan initial :
+
+- L'historique des AppOps (micro, caméra, localisation au-delà de 7 jours) est reporté : le format de
+  `dumpsys appops` doit d'abord être relevé sur le téléphone.
+- Les températures des capteurs, les plantages/ANR et la conso par appli marchent **sans Shizuku** dès que
+  la permission DUMP est accordée (dump direct des services système).
+- La base locale est en version 2 ; les prochaines évolutions de schéma devront fournir une migration
+  (le repli destructif ne sert que de filet de sécurité).
+
 ### Phase 1 — Fondations et temps réel
 
 | Fonction | Niveau |
