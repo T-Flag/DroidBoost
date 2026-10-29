@@ -17,7 +17,9 @@ class BootReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                if (settings.isEnabled()) MonitorService.start(context)
+                val config = settings.current()
+                if (config.keepWirelessDebugging) ShizukuWatchdog(context, AlertNotifier(context)).enableWirelessDebugging()
+                if (config.enabled) MonitorService.start(context)
             } finally {
                 pending.finish()
             }

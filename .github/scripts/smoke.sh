@@ -58,11 +58,12 @@ tap_text() {
   adb shell input tap $(((x1 + x2) / 2)) $(((y1 + y2) / 2))
 }
 
-tap_class() {
+# Compose expose ses interrupteurs comme des vues « checkable », pas comme android.widget.Switch.
+tap_checkable() {
   local xml bounds
-  xml=$(dump) || { echo "?? écran illisible pour trouver $1"; return 1; }
-  bounds=$(echo "$xml" | tr '>' '\n' | grep -F "class=\"$1\"" | head -1 | grep -oE 'bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]"')
-  [ -z "$bounds" ] && { echo "KO élément $1 introuvable"; echo "$xml" | tr '>' '\n' | grep -oE 'class="[^"]+"' | sort | uniq -c; return 1; }
+  xml=$(dump) || { echo "?? écran illisible pour trouver un interrupteur"; return 1; }
+  bounds=$(echo "$xml" | tr '>' '\n' | grep -F 'checkable="true"' | head -1 | grep -oE 'bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]"')
+  [ -z "$bounds" ] && { echo "KO aucun interrupteur à l'écran"; return 1; }
   read -r x1 y1 x2 y2 < <(echo "$bounds" | grep -oE '[0-9]+' | tr '\n' ' ')
   adb shell input tap $(((x1 + x2) / 2)) $(((y1 + y2) / 2))
 }
@@ -75,7 +76,7 @@ shot tableau-de-bord
 expect "Tableau de bord" "Notification permanente" "Batterie" "Thermique"
 
 # Surveillance continue : l'interrupteur de la première carte.
-tap_class "android.widget.Switch" && sleep 8
+tap_checkable && sleep 8
 if adb shell dumpsys activity services "$PKG" | grep -q "MonitorService"; then
   echo "OK service de surveillance démarré"
 else

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.CompareArrows
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.ReportProblem
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -213,12 +214,13 @@ private fun iconFor(event: JournalEventEntity): ImageVector = when (event.type) 
     JournalTypes.EXIT -> Icons.Outlined.BugReport
     JournalTypes.ACTION -> Icons.Outlined.TouchApp
     JournalTypes.SHIZUKU -> Icons.Outlined.AdminPanelSettings
+    JournalTypes.ANOMALY -> Icons.Outlined.ReportProblem
     else -> Icons.Outlined.PhoneAndroid
 }
 
 @Composable
 private fun colorFor(event: JournalEventEntity) = when (event.type) {
-    JournalTypes.EXIT -> MaterialTheme.colorScheme.critical
+    JournalTypes.EXIT, JournalTypes.ANOMALY -> MaterialTheme.colorScheme.critical
     JournalTypes.PERMISSION -> MaterialTheme.colorScheme.tertiary
     JournalTypes.SYSTEM -> MaterialTheme.colorScheme.secondary
     else -> MaterialTheme.colorScheme.primary

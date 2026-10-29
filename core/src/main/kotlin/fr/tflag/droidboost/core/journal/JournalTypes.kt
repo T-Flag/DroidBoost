@@ -8,4 +8,5 @@ object JournalTypes {
     const val EXIT = "exit"
     const val ACTION = "action"
     const val SHIZUKU = "shizuku"
+    const val ANOMALY = "anomaly"
 }

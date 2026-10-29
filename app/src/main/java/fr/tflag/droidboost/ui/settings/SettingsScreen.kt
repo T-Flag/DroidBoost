@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -81,7 +82,34 @@ fun SettingsScreen(viewModel: SettingsViewModel, contentPadding: PaddingValues) 
                     }
                     Switch(checked = config.thermalAlert, onCheckedChange = viewModel::setThermalAlert)
                 }
+                ToggleRow(
+                    "Anomalies",
+                    "Décharge inhabituelle, plantages en boucle, stockage ou données qui explosent.",
+                    config.anomalyAlerts,
+                    viewModel::setAnomalyAlerts,
+                )
                 Hint("Les alertes fonctionnent quand la notification permanente est active.")
+            }
+        }
+        item {
+            SectionCard("Affichage et Shizuku", Icons.Outlined.Tune) {
+                ToggleRow(
+                    "Moniteur flottant",
+                    if (viewModel.canDrawOverlays) "Batterie, CPU et thermique par-dessus les autres applis (déplaçable)."
+                    else "Autorisez d'abord la superposition dans l'écran Accès.",
+                    config.overlayEnabled,
+                    viewModel::setOverlay,
+                    enabled = viewModel.canDrawOverlays,
+                )
+                ToggleRow(
+                    "Garder le débogage sans fil",
+                    if (viewModel.canWriteSecureSettings) "Le réactive au démarrage et quand Shizuku s'arrête, pour le relancer plus vite."
+                    else "Demande la permission WRITE_SECURE_SETTINGS (écran Accès).",
+                    config.keepWirelessDebugging,
+                    viewModel::setKeepWirelessDebugging,
+                    enabled = viewModel.canWriteSecureSettings,
+                )
+                Hint("Ajoutez aussi les tuiles « DroidBoost » et « Vider les caches » aux Réglages rapides, et le widget à l'écran d'accueil.")
             }
         }
     }
@@ -96,6 +124,17 @@ private fun Choice(label: String, options: List<Pair<Int, String>>, selected: In
                 FilterChip(selected = value == selected, onClick = { onSelect(value) }, label = { Text(text) })
             }
         }
+    }
+}
+
+@Composable
+private fun ToggleRow(title: String, description: String, checked: Boolean, onChange: (Boolean) -> Unit, enabled: Boolean = true) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Hint(description)
+        }
+        Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
     }
 }
 

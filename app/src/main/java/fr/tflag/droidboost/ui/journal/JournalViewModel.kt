@@ -30,7 +30,7 @@ enum class JournalFilter(val label: String, val types: Set<String>?) {
     APPS("Applis", setOf(JournalTypes.APP)),
     PERMISSIONS("Permissions", setOf(JournalTypes.PERMISSION)),
     STABILITY("Stabilité", setOf(JournalTypes.EXIT)),
-    SYSTEM("Système", setOf(JournalTypes.SYSTEM, JournalTypes.SHIZUKU)),
+    SYSTEM("Système", setOf(JournalTypes.SYSTEM, JournalTypes.SHIZUKU, JournalTypes.ANOMALY)),
     ACTIONS("Actions", setOf(JournalTypes.ACTION)),
 }
 

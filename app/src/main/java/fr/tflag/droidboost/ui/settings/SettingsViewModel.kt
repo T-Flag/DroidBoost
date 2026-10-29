@@ -36,6 +36,16 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
 
     fun setThermalAlert(enabled: Boolean) = launch { settings.setThermalAlert(enabled) }
 
+    fun setAnomalyAlerts(enabled: Boolean) = launch { settings.setAnomalyAlerts(enabled) }
+
+    fun setOverlay(enabled: Boolean) = launch { settings.setOverlay(enabled) }
+
+    fun setKeepWirelessDebugging(enabled: Boolean) = launch { settings.setKeepWirelessDebugging(enabled) }
+
+    val canDrawOverlays: Boolean get() = container.access.hasOverlay()
+
+    val canWriteSecureSettings: Boolean get() = container.access.isGranted(fr.tflag.droidboost.access.DevGrant.WRITE_SECURE_SETTINGS)
+
     private fun launch(block: suspend () -> Unit) {
         viewModelScope.launch { block() }
     }

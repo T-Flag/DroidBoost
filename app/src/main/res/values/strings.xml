@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">DroidBoost</string>
+    <string name="widget_description">Batterie, thermique, mémoire et stockage en un coup d\'œil</string>
+    <string name="tile_monitor">DroidBoost</string>
+    <string name="tile_trim">Vider les caches</string>
 </resources>

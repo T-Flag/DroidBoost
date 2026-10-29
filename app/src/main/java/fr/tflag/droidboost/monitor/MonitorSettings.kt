@@ -19,6 +19,12 @@ data class MonitorConfig(
     /** 0 disables the alert. */
     val batteryTempAlertC: Int = 42,
     val thermalAlert: Boolean = true,
+    /** Alerts when the phone behaves unlike its own baseline (drain, crashes, storage). */
+    val anomalyAlerts: Boolean = true,
+    /** Floating monitor drawn over other apps while the persistent notification is active. */
+    val overlayEnabled: Boolean = false,
+    /** Turns wireless debugging back on at boot and when Shizuku stops, so Shizuku can restart. */
+    val keepWirelessDebugging: Boolean = false,
 )
 
 class MonitorSettings(private val store: DataStore<Preferences>) {
@@ -32,6 +38,9 @@ class MonitorSettings(private val store: DataStore<Preferences>) {
             chargeAlertPercent = prefs[CHARGE_ALERT] ?: defaults.chargeAlertPercent,
             batteryTempAlertC = prefs[TEMP_ALERT] ?: defaults.batteryTempAlertC,
             thermalAlert = prefs[THERMAL_ALERT] ?: defaults.thermalAlert,
+            anomalyAlerts = prefs[ANOMALY_ALERTS] ?: defaults.anomalyAlerts,
+            overlayEnabled = prefs[OVERLAY] ?: defaults.overlayEnabled,
+            keepWirelessDebugging = prefs[KEEP_WIRELESS_DEBUGGING] ?: defaults.keepWirelessDebugging,
         )
     }
 
@@ -51,6 +60,14 @@ class MonitorSettings(private val store: DataStore<Preferences>) {
 
     suspend fun setThermalAlert(value: Boolean) = store.edit { it[THERMAL_ALERT] = value }
 
+    suspend fun setAnomalyAlerts(value: Boolean) = store.edit { it[ANOMALY_ALERTS] = value }
+
+    suspend fun setOverlay(value: Boolean) = store.edit { it[OVERLAY] = value }
+
+    suspend fun setKeepWirelessDebugging(value: Boolean) = store.edit { it[KEEP_WIRELESS_DEBUGGING] = value }
+
+    suspend fun current(): MonitorConfig = config.first()
+
     private companion object {
         val ENABLED = booleanPreferencesKey("monitor_enabled")
         val RECORD_INTERVAL = intPreferencesKey("record_interval_sec")
@@ -58,5 +75,8 @@ class MonitorSettings(private val store: DataStore<Preferences>) {
         val CHARGE_ALERT = intPreferencesKey("charge_alert_percent")
         val TEMP_ALERT = intPreferencesKey("battery_temp_alert_c")
         val THERMAL_ALERT = booleanPreferencesKey("thermal_alert")
+        val ANOMALY_ALERTS = booleanPreferencesKey("anomaly_alerts")
+        val OVERLAY = booleanPreferencesKey("overlay_enabled")
+        val KEEP_WIRELESS_DEBUGGING = booleanPreferencesKey("keep_wireless_debugging")
     }
 }
