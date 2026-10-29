@@ -3,6 +3,7 @@ package fr.tflag.droidboost.ui
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Storage
@@ -37,6 +38,8 @@ import fr.tflag.droidboost.ui.battery.BatteryScreen
 import fr.tflag.droidboost.ui.battery.BatteryViewModel
 import fr.tflag.droidboost.ui.dashboard.DashboardScreen
 import fr.tflag.droidboost.ui.dashboard.DashboardViewModel
+import fr.tflag.droidboost.ui.journal.JournalScreen
+import fr.tflag.droidboost.ui.journal.JournalViewModel
 import fr.tflag.droidboost.ui.more.MoreScreen
 import fr.tflag.droidboost.ui.settings.SettingsScreen
 import fr.tflag.droidboost.ui.settings.SettingsViewModel
@@ -49,6 +52,7 @@ private enum class Tab(val route: String, val label: String, val icon: ImageVect
     DASHBOARD("dashboard", "Tableau de bord", Icons.Outlined.Speed),
     APPS("apps", "Applis", Icons.Outlined.Apps),
     STORAGE("storage", "Stockage", Icons.Outlined.Storage),
+    JOURNAL("journal", "Journal", Icons.Outlined.History),
     MORE("more", "Plus", Icons.Outlined.MoreHoriz),
 }
 
@@ -150,6 +154,9 @@ fun DroidBoostRoot(container: AppContainer) {
                     onOpenApp = ::openApp,
                     onOpenAccess = { navigateTo("access") },
                 )
+            }
+            composable(Tab.JOURNAL.route) {
+                JournalScreen(viewModel { JournalViewModel(container) }, padding, snackbar, onOpenAccess = { navigateTo("access") })
             }
             composable(Tab.MORE.route) { MoreScreen(padding, onOpen = ::navigateTo) }
             composable("access") {

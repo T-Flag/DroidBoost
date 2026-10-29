@@ -94,6 +94,10 @@ tap_text "Stockage" && sleep 10
 shot stockage
 expect "Stockage" "Répartition" "Caches"
 
+tap_text "Journal" && sleep 8
+shot journal
+expect "Journal" "Tout" "Stabilité" "Début du journal"
+
 tap_text "Plus" && sleep 3
 shot plus
 expect "Plus" "Batterie" "Thermique" "Accès" "Réglages"

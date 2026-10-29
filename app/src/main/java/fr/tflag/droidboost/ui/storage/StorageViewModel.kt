@@ -80,6 +80,7 @@ class StorageViewModel(private val container: AppContainer) : ViewModel() {
                 when (outcome) {
                     is CommandOutcome.Success -> {
                         val freed = if (before != null && after != null) (after - before).coerceAtLeast(0) else null
+                        container.journal.logAction(null, "Caches de toutes les applis vidés", freed?.let { "${Formats.bytes(it)} libérés" })
                         freed?.let { "Caches vidés : ${Formats.bytes(it)} libérés" } ?: "Caches vidés"
                     }
                     is CommandOutcome.RootRequired -> "Android refuse cette action sans root"

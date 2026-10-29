@@ -107,6 +107,11 @@ class AppDetailViewModel(private val container: AppContainer, private val packag
                     is CommandOutcome.Failed -> "Échec : ${outcome.message.lineSequence().firstOrNull().orEmpty().take(MAX_MESSAGE)}"
                 },
             )
+            if (outcome is CommandOutcome.Success) {
+                val label = content.value.app?.label ?: packageName
+                container.journal.logAction(packageName, "$successMessage : $label", "depuis DroidBoost")
+                container.appScope.launch { runCatching { container.journal.refresh() } }
+            }
             container.apps.notifyChanged(packageName)
             reload()
         }

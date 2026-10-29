@@ -7,6 +7,7 @@ import fr.tflag.droidboost.apps.AppActions
 import fr.tflag.droidboost.apps.AppRepository
 import fr.tflag.droidboost.data.HistoryDatabase
 import fr.tflag.droidboost.data.HistoryRepository
+import fr.tflag.droidboost.journal.JournalRecorder
 import fr.tflag.droidboost.monitor.MonitorSettings
 import fr.tflag.droidboost.shell.ShizukuShell
 import fr.tflag.droidboost.system.BatteryReader
@@ -15,6 +16,9 @@ import fr.tflag.droidboost.system.MemoryReader
 import fr.tflag.droidboost.system.NetworkSpeedReader
 import fr.tflag.droidboost.system.StorageReader
 import fr.tflag.droidboost.system.ThermalReader
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 private val Context.settingsStore by preferencesDataStore(name = "settings")
 
@@ -31,6 +35,10 @@ class AppContainer(context: Context) {
     val monitorSettings = MonitorSettings(appContext.settingsStore)
     val history: HistoryDatabase by lazy { HistoryDatabase.create(appContext) }
     val historyRepository: HistoryRepository by lazy { HistoryRepository(history) }
+    val journal: JournalRecorder by lazy { JournalRecorder(appContext, history, appContext.settingsStore) }
+
+    /** Work that must outlive a screen (journal refresh after an action, export). */
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     // Readers keeping state between samples: one instance per consumer.
     fun newThermalReader() = ThermalReader(appContext, shell)

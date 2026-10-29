@@ -3,8 +3,10 @@ package fr.tflag.droidboost.monitor
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -30,6 +32,35 @@ import kotlinx.coroutines.launch
 class MonitorService : LifecycleService() {
 
     private var loop: Job? = null
+    private var pendingJournal: Job? = null
+
+    /** Installs, updates and removals refresh the journal right away (debounced). */
+    private val packageReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            pendingJournal?.cancel()
+            pendingJournal = lifecycleScope.launch(Dispatchers.Default) {
+                delay(PACKAGE_DEBOUNCE_MS)
+                runCatching { (application as DroidBoostApp).container.journal.refresh() }
+            }
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addAction(Intent.ACTION_PACKAGE_REPLACED)
+            addAction(Intent.ACTION_PACKAGE_CHANGED)
+            addDataScheme("package")
+        }
+        registerReceiver(packageReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+    }
+
+    override fun onDestroy() {
+        unregisterReceiver(packageReceiver)
+        super.onDestroy()
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
@@ -57,7 +88,18 @@ class MonitorService : LifecycleService() {
         val config = container.monitorSettings.config.stateIn(lifecycleScope, SharingStarted.Eagerly, MonitorConfig())
         recorder.start()
         network.read()
+        var lastJournalAt = 0L
+        var shizukuReady = container.shell.isReady
         while (lifecycleScope.isActive) {
+            val now = System.currentTimeMillis()
+            if (now - lastJournalAt >= JOURNAL_INTERVAL_MS) {
+                lastJournalAt = now
+                runCatching { container.journal.refresh() }.onFailure { Log.w(TAG, "Journal impossible", it) }
+            }
+            if (container.shell.isReady != shizukuReady) {
+                shizukuReady = container.shell.isReady
+                runCatching { container.journal.logShizuku(shizukuReady) }
+            }
             val battery = container.battery.read()
             val thermalSnapshot = thermal.read(includeHal = false)
             val memorySnapshot = memory.read()
@@ -118,6 +160,8 @@ class MonitorService : LifecycleService() {
         private const val TAG = "MonitorService"
         private const val NOTIFICATION_ID = 1
         private const val REFRESH_MS = 5_000L
+        private const val JOURNAL_INTERVAL_MS = 15 * 60_000L
+        private const val PACKAGE_DEBOUNCE_MS = 3_000L
         private const val ACTION_STOP = "fr.tflag.droidboost.action.STOP_MONITOR"
 
         fun start(context: Context) {
