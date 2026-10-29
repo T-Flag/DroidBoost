@@ -31,6 +31,11 @@ android {
     }
 
     buildTypes {
+        // Separate package so a local build installs next to the release one without touching its data.
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-dev"
+        }
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")

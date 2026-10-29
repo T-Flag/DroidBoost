@@ -3,7 +3,7 @@
 # active la surveillance continue, puis échoue si l'appli a planté ou si un écran n'affiche pas ce qu'il doit.
 set -u
 APK_DIR="$1"
-PKG=fr.tflag.droidboost
+PKG="${PKG:-fr.tflag.droidboost}"
 OUT=smoke-out
 mkdir -p "$OUT"
 FAILURES=0
@@ -78,7 +78,7 @@ tap_checkable() {
 
 back() { adb shell input keyevent 4; sleep 3; }
 
-adb shell am start -W -n "$PKG/.MainActivity"
+adb shell am start -W -n "$PKG/fr.tflag.droidboost.MainActivity"
 sleep 8
 adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
 shot tableau-de-bord

@@ -79,3 +79,6 @@ Puis ajoutez ces secrets dans **Settings > Secrets and variables > Actions** du 
 - `core/` : logique pure (analyseurs `dumpsys` / `/proc`, commandes shell validées, formats), testée par JUnit :
   `./gradlew -p core test`
 - `app/` : appli Android (Kotlin, Jetpack Compose, Material 3), AGP 9.5, compileSdk 37, targetSdk 36, minSdk 34.
+- `./gradlew :app:installDebug` installe la variante de développement (`fr.tflag.droidboost.debug`, « DroidBoost dev »)
+  à côté de la version normale, sans toucher à son historique. Les permissions sont à lui accorder à part.
+- `CLAUDE.md` résume l'architecture et les règles du projet.
