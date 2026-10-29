@@ -18,7 +18,6 @@ adb shell appops set "$PKG" MANAGE_EXTERNAL_STORAGE allow || true
 adb logcat -c
 # Un émulateur lent affiche parfois « … ne répond pas » : on ferme les fenêtres système avant de commencer.
 adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
-adb shell input keyevent 3
 
 # Écran courant au format XML ; l'écran se met à jour en continu, d'où les essais répétés.
 dump() {
@@ -78,9 +77,10 @@ tap_checkable() {
 
 back() { adb shell input keyevent 4; sleep 3; }
 
-# Sur un émulateur lent, l'écran d'accueil revient parfois juste après le lancement : on relance jusqu'à voir l'appli.
+# Sur un émulateur qui vient de démarrer, l'écran d'accueil repasse parfois devant l'appli au lancement, et
+# « am start -W » attend alors indéfiniment : on lance sans attendre, puis on relance jusqu'à voir l'appli.
 for attempt in 1 2 3; do
-  adb shell am start -W -n "$PKG/fr.tflag.droidboost.MainActivity"
+  adb shell am start -n "$PKG/fr.tflag.droidboost.MainActivity"
   sleep 8
   adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
   resumed=$(adb shell dumpsys activity activities | grep -m1 'ResumedActivity')
