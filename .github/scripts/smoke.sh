@@ -77,6 +77,15 @@ tap_checkable() {
 
 back() { adb shell input keyevent 4; sleep 3; }
 
+# Les listes Compose n'exposent que les éléments visibles : on fait défiler jusqu'au texte (5 essais au plus).
+scroll_to() {
+  for _ in 1 2 3 4 5; do
+    dump | grep -qF "text=\"$1" && return 0
+    adb shell input swipe 540 1700 540 700 300
+    sleep 2
+  done
+}
+
 # Sur un émulateur qui vient de démarrer, l'écran d'accueil repasse parfois devant l'appli au lancement, et
 # « am start -W » attend alors indéfiniment : on lance sans attendre, puis on relance jusqu'à voir l'appli.
 for attempt in 1 2 3; do
@@ -120,7 +129,9 @@ shot plus
 expect "Plus" "Batterie" "Thermique" "Accès" "Réglages"
 tap_text "Batterie" && sleep 5
 shot batterie
-expect "Batterie" "Santé de la batterie" "Historique"
+expect "Batterie" "Santé de la batterie"
+scroll_to "Historique"
+expect "Batterie" "Historique"
 back
 tap_text "Thermique" && sleep 5
 shot thermique
