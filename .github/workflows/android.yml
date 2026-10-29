@@ -1,0 +1,57 @@
+name: Android
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Sans secrets, l'APK est signé avec la clé de debug ; la garder en cache évite qu'elle change
+      # à chaque compilation (sinon il faudrait désinstaller l'appli avant chaque mise à jour).
+      - name: Clé de debug stable
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: droidboost-debug-keystore-v1
+
+      - name: Clé de signature personnelle (si configurée)
+        env:
+          KEYSTORE_B64: ${{ secrets.DROIDBOOST_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "DROIDBOOST_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          fi
+
+      - name: Tests du module core
+        run: ./gradlew -p core test
+
+      - name: Compilation de l'APK
+        env:
+          DROIDBOOST_STORE_PASSWORD: ${{ secrets.DROIDBOOST_STORE_PASSWORD }}
+          DROIDBOOST_KEY_ALIAS: ${{ secrets.DROIDBOOST_KEY_ALIAS }}
+          DROIDBOOST_KEY_PASSWORD: ${{ secrets.DROIDBOOST_KEY_PASSWORD }}
+          DROIDBOOST_VERSION_CODE: ${{ github.run_number }}
+        run: ./gradlew :app:assembleRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: droidboost-${{ github.run_number }}
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
