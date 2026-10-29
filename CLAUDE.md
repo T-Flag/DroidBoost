@@ -29,7 +29,7 @@ accorder) et `reports/` (étude des applis existantes).
 ```bash
 ./gradlew -p core test               # tests de la logique pure
 ./gradlew :app:installDebug          # variante debug : paquet fr.tflag.droidboost.debug, nom « DroidBoost dev »
-./gradlew :app:assembleRelease       # APK release (clé de debug si les variables DROIDBOOST_* sont absentes)
+./gradlew :app:assembleRelease       # APK release (clé stable si les variables DROIDBOOST_* sont définies, sinon clé de debug)
 PKG=fr.tflag.droidboost.debug bash .github/scripts/smoke.sh app/build/outputs/apk/debug   # parcours de tous les écrans
 ```
 
@@ -39,6 +39,12 @@ historique, mais il faut lui accorder les permissions à part :
 ```bash
 adb shell 'for p in PACKAGE_USAGE_STATS BATTERY_STATS DUMP WRITE_SECURE_SETTINGS READ_LOGS ACCESS_FINE_POWER_MONITORS; do pm grant fr.tflag.droidboost.debug android.permission.$p; done; appops set fr.tflag.droidboost.debug GET_USAGE_STATS allow'
 ```
+
+Depuis le 29/10/2026, la CI signe la release avec une clé stable (PKCS12, alias `droidboost`) fournie par les secrets
+du dépôt `DROIDBOOST_KEYSTORE_B64`, `DROIDBOOST_STORE_PASSWORD`, `DROIDBOOST_KEY_ALIAS` et `DROIDBOOST_KEY_PASSWORD` :
+chaque APK de la CI s'installe par-dessus celui du téléphone et garde son historique. La clé et son mot de passe ne
+sont jamais dans le dépôt, ni dans aucun fichier qu'il contient. Une release compilée sans ces variables est signée
+avec la clé de debug : Android la refuse comme mise à jour de l'appli installée.
 
 Le script de parcours sert à la CI (`.github/workflows/smoke.yml`, émulateur API 35) et marche aussi sur un émulateur
 local. Il cherche des textes à l'écran : si un libellé change dans l'interface, mets le script à jour.
