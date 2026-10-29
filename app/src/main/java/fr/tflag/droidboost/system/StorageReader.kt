@@ -14,7 +14,6 @@ data class MediaBreakdown(
     val imageBytes: Long,
     val videoBytes: Long,
     val audioBytes: Long,
-    val obbBytes: Long,
     val externalTotalBytes: Long,
 )
 
@@ -42,7 +41,6 @@ class StorageReader(context: Context) {
             imageBytes = external.imageBytes,
             videoBytes = external.videoBytes,
             audioBytes = external.audioBytes,
-            obbBytes = external.obbBytes,
             externalTotalBytes = external.totalBytes,
         )
     }.getOrNull()
