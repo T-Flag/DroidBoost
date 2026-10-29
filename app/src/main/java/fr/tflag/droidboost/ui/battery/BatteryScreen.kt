@@ -1,5 +1,6 @@
 package fr.tflag.droidboost.ui.battery
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,12 +11,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BatteryAlert
 import androidx.compose.material.icons.outlined.ElectricBolt
 import androidx.compose.material.icons.outlined.HealthAndSafety
 import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -45,7 +48,13 @@ private val SESSION_DATE = DateTimeFormatter.ofPattern("EEE d MMM, HH:mm", Local
 private val ONE_DECIMAL = DecimalFormat("0.0", DecimalFormatSymbols(Locale.FRANCE))
 
 @Composable
-fun BatteryScreen(viewModel: BatteryViewModel, contentPadding: PaddingValues, onOpenAccess: () -> Unit, onOpenDashboard: () -> Unit) {
+fun BatteryScreen(
+    viewModel: BatteryViewModel,
+    contentPadding: PaddingValues,
+    onOpenAccess: () -> Unit,
+    onOpenDashboard: () -> Unit,
+    onOpenApp: (String) -> Unit,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -58,6 +67,8 @@ fun BatteryScreen(viewModel: BatteryViewModel, contentPadding: PaddingValues, on
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { HealthCard(state, onOpenAccess) }
+        item { AppUsageCard(state, viewModel::refreshAppUsage, onOpenApp, onOpenAccess) }
+        if (state.railsSupported) item { RailsCard(state) }
         item {
             SectionCard("Historique", Icons.Outlined.ShowChart) {
                 if (!state.monitorEnabled) {
@@ -137,6 +148,59 @@ private fun HealthCard(state: BatteryScreenState, onOpenAccess: () -> Unit) {
         )
     }
 }
+
+@Composable
+private fun AppUsageCard(state: BatteryScreenState, onRefresh: () -> Unit, onOpenApp: (String) -> Unit, onOpenAccess: () -> Unit) {
+    SectionCard("Consommation par appli", Icons.Outlined.BatteryAlert) {
+        Text(
+            "Estimation du système depuis la dernière charge complète, en mAh.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        val usage = state.appUsage
+        when {
+            state.appUsageLoading && usage == null -> Text("Lecture en cours…", style = MaterialTheme.typography.bodySmall)
+            usage == null -> MissingAccessHint("Demande la permission DUMP ou Shizuku.", "Configurer", onOpenAccess)
+            usage.isEmpty() -> Text("Aucune donnée (le téléphone vient peut-être d'être chargé).", style = MaterialTheme.typography.bodySmall)
+            else -> {
+                val total = usage.sumOf { it.mah }.takeIf { it > 0 } ?: 1.0
+                usage.take(MAX_APPS).forEach { app ->
+                    val pkg = app.packageName
+                    Column(Modifier.fillMaxWidth().then(if (pkg != null) Modifier.clickable { onOpenApp(pkg) } else Modifier)) {
+                        MetricRow(app.label, "${ONE_DECIMAL.format(app.mah)} mAh · ${Formats.percent((app.mah / total).toFloat())}")
+                        LevelBar((app.mah / usage.first().mah).toFloat())
+                    }
+                }
+            }
+        }
+        TextButton(onClick = onRefresh) { Text("Actualiser") }
+    }
+}
+
+@Composable
+private fun RailsCard(state: BatteryScreenState) {
+    SectionCard("Énergie par composant", Icons.Outlined.ElectricBolt) {
+        if (state.rails.isEmpty()) {
+            Text(
+                "Mesure en cours (environ 20 s), ou capteurs d'énergie non exposés par ce téléphone.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        val max = state.rails.maxOfOrNull { it.watts }?.takeIf { it > 0 } ?: 1.0
+        state.rails.forEach { rail ->
+            MetricRow(rail.name, Formats.watts(rail.watts))
+            LevelBar((rail.watts / max).toFloat())
+        }
+        Text(
+            "Mesures des rails d'alimentation (ODPM) : CPU par cluster, GPU, modem, écran… Moyenne sur l'intervalle entre deux relevés.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+private const val MAX_APPS = 15
 
 @Composable
 private fun healthColor(fraction: Float) = when {

@@ -16,13 +16,13 @@ import fr.tflag.droidboost.core.monitor.ThermalEpisodeTracker
 import fr.tflag.droidboost.core.monitor.ThermalEvent
 import fr.tflag.droidboost.core.monitor.ThresholdAlert
 import fr.tflag.droidboost.core.parse.ThermalDumpParser
-import fr.tflag.droidboost.core.shell.ShellCommands
 import fr.tflag.droidboost.data.ChargeSessionEntity
 import fr.tflag.droidboost.data.SampleEntity
 import fr.tflag.droidboost.data.ThermalEpisodeEntity
 import fr.tflag.droidboost.system.BatterySnapshot
 import fr.tflag.droidboost.system.MemorySnapshot
 import fr.tflag.droidboost.system.NetworkSpeed
+import fr.tflag.droidboost.system.PowerRailsReader
 import fr.tflag.droidboost.system.ThermalSnapshot
 import java.util.concurrent.TimeUnit
 
@@ -44,6 +44,8 @@ class Recorder(private val container: AppContainer, private val alerts: AlertNot
     private var lastEpisodeWriteAt = 0L
     private var lastRecordAt = 0L
     private var lastPurgeAt = 0L
+    private var lastAppSizesAt = 0L
+    private val rails = PowerRailsReader(container.appContext)
 
     private var chargeAlert: Pair<Int, ChargeLevelAlert>? = null
     private var temperatureAlert: Pair<Int, ThresholdAlert>? = null
@@ -70,6 +72,10 @@ class Recorder(private val container: AppContainer, private val alerts: AlertNot
         if (now - lastRecordAt >= config.recordIntervalSec * 1000L) {
             lastRecordAt = now
             record(now, battery, thermal, memory, network)
+        }
+        if (now - lastAppSizesAt >= APP_SIZES_INTERVAL_MS) {
+            lastAppSizesAt = now
+            recordAppSizes(now)
         }
         if (now - lastPurgeAt >= PURGE_INTERVAL_MS) {
             lastPurgeAt = now
@@ -187,10 +193,24 @@ class Recorder(private val container: AppContainer, private val alerts: AlertNot
         if (container.shell.isReady) {
             // Average load since the previous record, since the reader diffs consecutive /proc/stat snapshots.
             cpu.read().totalLoad?.let { add(Metrics.CPU_LOAD, it.toDouble()) }
-            container.shell.output(ShellCommands.THERMAL_DUMP)?.let(ThermalDumpParser::parse)?.temperatures
-                ?.filter { TemperatureTypes.isTemperature(it.type) }
-                ?.groupBy { TemperatureTypes.label(it.type) }
-                ?.forEach { (type, sensors) -> add(Metrics.HAL_TEMPERATURE, sensors.maxOf { it.celsius }.toDouble(), tag = type) }
+        }
+        container.dumper.dump("thermalservice")?.let(ThermalDumpParser::parse)?.temperatures
+            ?.filter { TemperatureTypes.isTemperature(it.type) }
+            ?.groupBy { TemperatureTypes.label(it.type) }
+            ?.forEach { (type, sensors) -> add(Metrics.HAL_TEMPERATURE, sensors.maxOf { it.celsius }.toDouble(), tag = type) }
+        rails.read().forEach { add(Metrics.POWER_RAIL, it.watts, tag = it.name) }
+        db.samples().insertAll(rows)
+    }
+
+    /** Cache and data size of every app, to spot the ones that keep growing. */
+    private suspend fun recordAppSizes(now: Long) {
+        if (!container.access.hasUsageStats()) return
+        val rows = container.apps.loadAll().flatMap { app ->
+            val size = app.size ?: return@flatMap emptyList()
+            listOf(
+                SampleEntity(ts = now, metric = Metrics.APP_CACHE, tag = app.packageName, value = size.cacheBytes.toDouble()),
+                SampleEntity(ts = now, metric = Metrics.APP_DATA, tag = app.packageName, value = size.dataBytes.toDouble()),
+            )
         }
         db.samples().insertAll(rows)
     }
@@ -235,6 +255,7 @@ class Recorder(private val container: AppContainer, private val alerts: AlertNot
     private companion object {
         const val SESSION_WRITE_INTERVAL_MS = 30_000L
         const val PURGE_INTERVAL_MS = 6 * 3_600_000L
+        const val APP_SIZES_INTERVAL_MS = 6 * 3_600_000L
         const val EVENT_RETENTION_DAYS = 365L
     }
 }

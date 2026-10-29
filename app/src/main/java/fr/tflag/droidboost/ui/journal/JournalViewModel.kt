@@ -131,13 +131,13 @@ class JournalViewModel(private val container: AppContainer) : ViewModel() {
                 higherIsWorse = true,
             ),
             ComparedMetric(
-                "Épisodes de bridage par jour",
+                EPISODES_LABEL,
                 perDay(db.thermalEpisodes().countBetween(beforeStart, pivot), beforeStart, pivot),
                 perDay(db.thermalEpisodes().countBetween(pivot, afterEnd), pivot, afterEnd),
                 higherIsWorse = true,
             ),
             ComparedMetric(
-                "Plantages, ANR et arrêts mémoire par jour",
+                EXITS_LABEL,
                 perDay(db.journal().countBetween(JournalTypes.EXIT, beforeStart, pivot), beforeStart, pivot),
                 perDay(db.journal().countBetween(JournalTypes.EXIT, pivot, afterEnd), pivot, afterEnd),
                 higherIsWorse = true,
@@ -149,6 +149,9 @@ class JournalViewModel(private val container: AppContainer) : ViewModel() {
                 higherIsWorse = true,
             ),
         )
+        // Without recorded history on both sides, the comparison would only show empty values.
+        val sampled = metrics.filter { it.label != EPISODES_LABEL && it.label != EXITS_LABEL }
+        if (sampled.none { it.before != null && it.after != null }) return null
         val title = if (update != null) "Avant / après : ${update.title.removePrefix("Mise à jour du système : ")}" else "7 derniers jours / 7 jours précédents"
         return Comparison(title, metrics)
     }
@@ -162,6 +165,8 @@ class JournalViewModel(private val container: AppContainer) : ViewModel() {
 
     private companion object {
         const val EVENT_LIMIT = 500
+        const val EPISODES_LABEL = "Épisodes de bridage par jour"
+        const val EXITS_LABEL = "Plantages, ANR et arrêts mémoire par jour"
         const val DAY_MS = 24 * 3_600_000L
         const val WEEK_MS = 7 * DAY_MS
         const val MIN_AFTER_MS = 6 * 3_600_000L

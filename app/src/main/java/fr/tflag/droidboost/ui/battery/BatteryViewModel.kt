@@ -10,7 +10,10 @@ import fr.tflag.droidboost.core.monitor.HistoryWindow
 import fr.tflag.droidboost.core.monitor.Metrics
 import fr.tflag.droidboost.data.ChargeSessionEntity
 import fr.tflag.droidboost.data.SeriesPoint
+import fr.tflag.droidboost.maintenance.AppBatteryUse
 import fr.tflag.droidboost.system.BatterySnapshot
+import fr.tflag.droidboost.system.PowerRailsReader
+import fr.tflag.droidboost.system.RailPower
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -22,6 +25,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class BatteryHistory(
     val level: List<SeriesPoint> = emptyList(),
@@ -40,6 +44,11 @@ data class BatteryScreenState(
     val sessionCapacityMah: Double? = null,
     val hasBatteryStats: Boolean = false,
     val monitorEnabled: Boolean = false,
+    /** Null until loaded, or when neither DUMP nor Shizuku is available. */
+    val appUsage: List<AppBatteryUse>? = null,
+    val appUsageLoading: Boolean = true,
+    val rails: List<RailPower> = emptyList(),
+    val railsSupported: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -80,7 +89,18 @@ class BatteryViewModel(private val container: AppContainer) : ViewModel() {
         emit(BatteryHealth.medianEstimate(container.historyRepository.capacityEstimates()))
     }.flowOn(Dispatchers.IO)
 
-    val state: StateFlow<BatteryScreenState> = combine(
+    private val railsReader = PowerRailsReader(container.appContext)
+    private val appUsage = MutableStateFlow<Pair<List<AppBatteryUse>?, Boolean>>(null to true)
+
+    private val rails = flow {
+        emit(railsReader.read())
+        while (true) {
+            delay(RAILS_REFRESH_MS)
+            emit(railsReader.read())
+        }
+    }.flowOn(Dispatchers.IO)
+
+    private val base = combine(
         window,
         live,
         history,
@@ -98,7 +118,20 @@ class BatteryViewModel(private val container: AppContainer) : ViewModel() {
             hasBatteryStats = container.access.isGranted(DevGrant.BATTERY_STATS),
             monitorEnabled = monitorEnabled,
         )
+    }
+
+    val state: StateFlow<BatteryScreenState> = combine(base, appUsage, rails) { screen, (usage, loading), railPower ->
+        screen.copy(appUsage = usage, appUsageLoading = loading, rails = railPower, railsSupported = railsReader.isSupported)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BatteryScreenState(designCapacityMah = design))
+
+    init {
+        refreshAppUsage()
+    }
+
+    fun refreshAppUsage() {
+        appUsage.value = appUsage.value.first to true
+        viewModelScope.launch { appUsage.value = container.batteryUsage.sinceLastCharge() to false }
+    }
 
     fun setWindow(value: HistoryWindow) {
         window.value = value
@@ -107,5 +140,6 @@ class BatteryViewModel(private val container: AppContainer) : ViewModel() {
     private companion object {
         const val LIVE_REFRESH_MS = 2_000L
         const val HISTORY_REFRESH_MS = 60_000L
+        const val RAILS_REFRESH_MS = 20_000L
     }
 }

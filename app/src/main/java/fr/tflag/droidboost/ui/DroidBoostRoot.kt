@@ -36,7 +36,11 @@ import fr.tflag.droidboost.ui.apps.AppsScreen
 import fr.tflag.droidboost.ui.apps.AppsViewModel
 import fr.tflag.droidboost.ui.battery.BatteryScreen
 import fr.tflag.droidboost.ui.battery.BatteryViewModel
+import fr.tflag.droidboost.ui.cleaner.CleanerScreen
+import fr.tflag.droidboost.ui.cleaner.CleanerViewModel
 import fr.tflag.droidboost.ui.dashboard.DashboardScreen
+import fr.tflag.droidboost.ui.debloat.DebloatScreen
+import fr.tflag.droidboost.ui.debloat.DebloatViewModel
 import fr.tflag.droidboost.ui.dashboard.DashboardViewModel
 import fr.tflag.droidboost.ui.journal.JournalScreen
 import fr.tflag.droidboost.ui.journal.JournalViewModel
@@ -69,6 +73,8 @@ private val SECONDARY = mapOf(
     "battery" to ("Batterie" to Tab.MORE),
     "thermal" to ("Thermique" to Tab.MORE),
     "network" to ("Réseau" to Tab.MORE),
+    "cleaner" to ("Nettoyage" to Tab.MORE),
+    "debloat" to ("Debloat Pixel" to Tab.MORE),
     "privacy" to ("Vie privée" to Tab.MORE),
     "security" to ("Sécurité" to Tab.MORE),
     "access" to ("Accès" to Tab.MORE),
@@ -176,6 +182,7 @@ fun DroidBoostRoot(container: AppContainer) {
                     padding,
                     onOpenAccess = { navigateTo("access") },
                     onOpenDashboard = { openTab(Tab.DASHBOARD) },
+                    onOpenApp = ::openApp,
                 )
             }
             composable("thermal") {
@@ -198,6 +205,19 @@ fun DroidBoostRoot(container: AppContainer) {
                 PrivacyScreen(
                     viewModel { PrivacyViewModel(container) },
                     padding,
+                    onOpenApp = ::openApp,
+                    onOpenAccess = { navigateTo("access") },
+                )
+            }
+            composable("cleaner") {
+                CleanerScreen(viewModel { CleanerViewModel(container) }, padding, snackbar, onOpenAccess = { navigateTo("access") })
+            }
+            composable("debloat") {
+                DebloatScreen(
+                    viewModel { DebloatViewModel(container) },
+                    container.apps,
+                    padding,
+                    snackbar,
                     onOpenApp = ::openApp,
                     onOpenAccess = { navigateTo("access") },
                 )

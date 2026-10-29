@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import fr.tflag.droidboost.AppContainer
 import fr.tflag.droidboost.apps.AppEntry
 import fr.tflag.droidboost.apps.PermissionEntry
+import fr.tflag.droidboost.core.maintenance.DebloatCatalog
 import fr.tflag.droidboost.core.shell.CommandOutcome
 import fr.tflag.droidboost.core.shell.StandbyBucket
 import fr.tflag.droidboost.shell.ShizukuState
@@ -29,11 +30,19 @@ data class AppDetailState(
     /** Set when Android refused `pm uninstall --user 0`: the screen offers to disable instead. */
     val offerDisable: Boolean = false,
     val isSelf: Boolean = false,
+    /** Why disabling/removing is blocked (critical Pixel component), null when allowed. */
+    val protectedReason: String? = null,
 )
 
 class AppDetailViewModel(private val container: AppContainer, private val packageName: String) : ViewModel() {
 
-    private val content = MutableStateFlow(AppDetailState(isSelf = packageName == container.packageName))
+    private val content = MutableStateFlow(
+        AppDetailState(
+            isSelf = packageName == container.packageName,
+            protectedReason = DebloatCatalog.find(packageName)?.takeIf { DebloatCatalog.isProtected(packageName) }?.note
+                ?: if (DebloatCatalog.isProtected(packageName)) "Composant chargé au démarrage du système." else null,
+        ),
+    )
     private val _messages = Channel<String>(Channel.BUFFERED)
     val messages: Flow<String> = _messages.receiveAsFlow()
 
@@ -71,12 +80,18 @@ class AppDetailViewModel(private val container: AppContainer, private val packag
 
     fun forceStop() = act("Appli arrêtée") { forceStop(packageName) }
 
-    fun setEnabled(enabled: Boolean) = act(if (enabled) "Appli réactivée" else "Appli désactivée") { setEnabled(packageName, enabled) }
+    fun setEnabled(enabled: Boolean) {
+        if (!enabled && content.value.protectedReason != null) return
+        act(if (enabled) "Appli réactivée" else "Appli désactivée") { setEnabled(packageName, enabled) }
+    }
 
     fun setSuspended(suspended: Boolean) =
         act(if (suspended) "Appli suspendue" else "Appli réactivée") { setSuspended(packageName, suspended) }
 
-    fun uninstallForUser() = act("Appli retirée pour cet utilisateur (réinstallable)") { uninstallForUser(packageName) }
+    fun uninstallForUser() {
+        if (content.value.protectedReason != null) return
+        act("Appli retirée pour cet utilisateur (réinstallable)") { uninstallForUser(packageName) }
+    }
 
     fun reinstall() = act("Appli réinstallée") { reinstall(packageName) }
 

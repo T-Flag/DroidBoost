@@ -1,6 +1,7 @@
 package fr.tflag.droidboost.ui.storage
 
 import android.content.Intent
+import android.provider.Settings
 import android.os.storage.StorageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,14 +24,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.PieChart
+import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,7 +45,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fr.tflag.droidboost.apps.AppEntry
 import fr.tflag.droidboost.apps.AppRepository
@@ -67,6 +73,7 @@ fun StorageScreen(
     onOpenAccess: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var byCache by remember { mutableStateOf(false) }
     val systemCacheDialog = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         viewModel.onSystemCacheDialogClosed()
@@ -106,6 +113,43 @@ fun StorageScreen(
                         "Configurer",
                         onOpenAccess,
                     )
+                }
+            }
+        }
+        if (state.growth.isNotEmpty()) {
+            item {
+                SectionCard("Plus fortes croissances (7 jours)", Icons.Outlined.TrendingUp) {
+                    state.growth.forEach { (app, delta) ->
+                        MetricRow(app.label, "+${Formats.bytes(delta)}", Modifier.clickable { onOpenApp(app.packageName) })
+                    }
+                    Text(
+                        "Données et cache, mesurés toutes les 6 h quand la surveillance continue est active.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        if (state.archiveCandidates.isNotEmpty()) {
+            item {
+                SectionCard("Applis inutilisées depuis 30 jours", Icons.Outlined.Archive) {
+                    Text(
+                        "Archiver retire l'APK et le cache mais garde vos données ; l'icône reste et l'appli se réinstalle d'un toucher.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    state.archiveCandidates.forEach { app ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TwoLineText(app.label, app.size?.let { Formats.bytes(it.totalBytes) } ?: "", Modifier.weight(1f))
+                            TextButton(onClick = {
+                                if (!viewModel.archive(app)) {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${app.packageName}".toUri()),
+                                    )
+                                }
+                            }) { Text("Archiver") }
+                        }
+                    }
                 }
             }
         }

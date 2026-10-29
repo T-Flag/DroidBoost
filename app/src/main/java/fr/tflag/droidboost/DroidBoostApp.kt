@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import fr.tflag.droidboost.monitor.AlertNotifier
 import fr.tflag.droidboost.monitor.MonitorService
 import kotlinx.coroutines.launch
+import org.lsposed.hiddenapibypass.HiddenApiBypass
 
 class DroidBoostApp : Application() {
 
@@ -14,6 +15,8 @@ class DroidBoostApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // ServiceDumper reaches system services by name through this hidden class.
+        runCatching { HiddenApiBypass.addHiddenApiExemptions("Landroid/os/ServiceManager;") }
         container = AppContainer(this)
         container.shell.start()
         container.appScope.launch { runCatching { container.journal.refresh() } }

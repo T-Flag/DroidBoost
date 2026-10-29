@@ -28,6 +28,9 @@
     <uses-permission
         android:name="android.permission.READ_LOGS"
         tools:ignore="ProtectedPermissions" />
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_POWER_MONITORS"
+        tools:ignore="ProtectedPermissions" />
 
     <!-- Surveillance continue. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

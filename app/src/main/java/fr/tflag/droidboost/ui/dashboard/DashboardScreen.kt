@@ -191,8 +191,8 @@ private fun ThermalCard(thermal: ThermalSnapshot, shizukuReady: Boolean, onOpenA
         val hal = thermal.hal
         if (hal == null) {
             MissingAccessHint(
-                if (shizukuReady) "Lecture des capteurs en cours…" else "Les températures des capteurs (CPU, GPU, surface, modem…) demandent Shizuku.",
-                if (shizukuReady) null else "Configurer",
+                "Les températures des capteurs (CPU, GPU, surface, modem…) demandent la permission DUMP ou Shizuku.",
+                "Configurer",
                 onOpenAccess,
             )
         } else {

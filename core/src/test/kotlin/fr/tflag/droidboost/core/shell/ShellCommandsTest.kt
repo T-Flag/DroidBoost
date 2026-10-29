@@ -34,6 +34,15 @@ class ShellCommandsTest {
     }
 
     @Test
+    fun `app folder commands stay inside their area`() {
+        assertEquals("rm -rf /sdcard/Android/data/com.old.app", ShellCommands.deleteAppFolder(AppFolderArea.DATA, "com.old.app"))
+        assertEquals("du -sk /sdcard/Android/obb/com.old.app", ShellCommands.folderSizeKb(AppFolderArea.OBB, "com.old.app"))
+        assertFailsWith<IllegalArgumentException> { ShellCommands.deleteAppFolder(AppFolderArea.DATA, "..") }
+        assertFailsWith<IllegalArgumentException> { ShellCommands.deleteAppFolder(AppFolderArea.DATA, "com.a/../../..") }
+        assertFailsWith<IllegalArgumentException> { ShellCommands.deleteAppFolder(AppFolderArea.DATA, "") }
+    }
+
+    @Test
     fun `validates package names`() {
         assertTrue(Identifiers.isValidPackage("com.google.android.gms"))
         assertTrue(Identifiers.isValidPackage("org.lineageos.updater_2"))

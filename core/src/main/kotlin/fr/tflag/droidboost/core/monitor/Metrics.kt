@@ -20,6 +20,13 @@ object Metrics {
     const val STORAGE_FREE = "storage_free"
     const val NET_RX = "net_rx_bps"
     const val NET_TX = "net_tx_bps"
+
+    /** Tagged with the package name, recorded every few hours. */
+    const val APP_CACHE = "app_cache"
+    const val APP_DATA = "app_data"
+
+    /** Tagged with the power monitor (ODPM rail) name, in watts. */
+    const val POWER_RAIL = "power_rail"
 }
 
 /** Time window shown by history charts, with the bucket used to downsample it. */

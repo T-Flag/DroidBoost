@@ -47,6 +47,18 @@ object ShellCommands {
 
     fun allowUsageStats(packageName: String) = "appops set ${pkg(packageName)} GET_USAGE_STATS allow"
 
+    /** Archives an app (Android 15+): APK and cache removed, data kept, icon restorable from the launcher. */
+    fun archive(packageName: String) = "pm archive --user 0 ${pkg(packageName)}"
+
+    /** Lists the per-app folders of a shared-storage area only the shell can read (Android/data, obb, media). */
+    fun listAppFolders(area: AppFolderArea) = "ls -1 ${area.path}"
+
+    /** Size in KB of one app folder, e.g. leftovers of an uninstalled app. */
+    fun folderSizeKb(area: AppFolderArea, packageName: String) = "du -sk ${area.path}/${pkg(packageName)}"
+
+    /** Deletes the folder of an uninstalled app; the package name is validated so the path cannot escape the area. */
+    fun deleteAppFolder(area: AppFolderArea, packageName: String) = "rm -rf ${area.path}/${pkg(packageName)}"
+
     const val THERMAL_DUMP = "dumpsys thermalservice"
     const val PROC_STAT = "cat /proc/stat"
     const val MEMINFO = "cat /proc/meminfo"
@@ -60,6 +72,12 @@ object ShellCommands {
         require(Identifiers.isValidPermission(name)) { "Nom de permission invalide : $name" }
         return name
     }
+}
+
+enum class AppFolderArea(val path: String, val label: String) {
+    DATA("/sdcard/Android/data", "Android/data"),
+    OBB("/sdcard/Android/obb", "Android/obb"),
+    MEDIA("/sdcard/Android/media", "Android/media"),
 }
 
 object Identifiers {

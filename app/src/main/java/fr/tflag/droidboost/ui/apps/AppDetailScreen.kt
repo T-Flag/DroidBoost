@@ -162,21 +162,29 @@ fun AppDetailScreen(
                     state.isSelf -> MissingAccessHint("Indisponible pour DroidBoost lui-même.")
                     !shizukuReady -> MissingAccessHint("Ces actions passent par Shizuku.", "Configurer", onOpenAccess)
                 }
+                state.protectedReason?.let {
+                    Text(
+                        "Composant protégé : désactivation et retrait bloqués. $it",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                val destructiveEnabled = actionsEnabled && state.protectedReason == null
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (app.installedForUser) {
                         FilledTonalButton(onClick = viewModel::forceStop, enabled = actionsEnabled) { Text("Forcer l'arrêt") }
                         if (app.enabled) {
-                            OutlinedButton(onClick = { confirm = Confirm.DISABLE }, enabled = actionsEnabled) { Text("Désactiver") }
+                            OutlinedButton(onClick = { confirm = Confirm.DISABLE }, enabled = destructiveEnabled) { Text("Désactiver") }
                         } else {
                             FilledTonalButton(onClick = { viewModel.setEnabled(true) }, enabled = actionsEnabled) { Text("Réactiver") }
                         }
                         if (app.suspended) {
                             FilledTonalButton(onClick = { viewModel.setSuspended(false) }, enabled = actionsEnabled) { Text("Lever la suspension") }
                         } else {
-                            OutlinedButton(onClick = { viewModel.setSuspended(true) }, enabled = actionsEnabled) { Text("Suspendre") }
+                            OutlinedButton(onClick = { viewModel.setSuspended(true) }, enabled = destructiveEnabled) { Text("Suspendre") }
                         }
-                        OutlinedButton(onClick = { confirm = Confirm.CLEAR_DATA }, enabled = actionsEnabled) { Text("Effacer les données") }
-                        OutlinedButton(onClick = { confirm = Confirm.UNINSTALL_FOR_USER }, enabled = actionsEnabled) { Text("Retirer") }
+                        OutlinedButton(onClick = { confirm = Confirm.CLEAR_DATA }, enabled = destructiveEnabled) { Text("Effacer les données") }
+                        OutlinedButton(onClick = { confirm = Confirm.UNINSTALL_FOR_USER }, enabled = destructiveEnabled) { Text("Retirer") }
                     } else {
                         FilledTonalButton(onClick = viewModel::reinstall, enabled = actionsEnabled) { Text("Réinstaller") }
                     }

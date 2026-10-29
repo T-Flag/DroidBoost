@@ -7,8 +7,6 @@ import android.os.SystemClock
 import fr.tflag.droidboost.core.model.ThermalDump
 import fr.tflag.droidboost.core.model.ThermalStatus
 import fr.tflag.droidboost.core.parse.ThermalDumpParser
-import fr.tflag.droidboost.core.shell.ShellCommands
-import fr.tflag.droidboost.shell.ShizukuShell
 
 data class ThermalSnapshot(
     val status: ThermalStatus,
@@ -16,11 +14,11 @@ data class ThermalSnapshot(
     val headroom: Float?,
     /** Headroom value at which each status starts (Android 15+). */
     val headroomThresholds: Map<ThermalStatus, Float>,
-    /** HAL sensors, only through Shizuku. */
+    /** HAL sensors, through the DUMP permission or Shizuku. */
     val hal: ThermalDump?,
 )
 
-class ThermalReader(context: Context, private val shell: ShizukuShell) {
+class ThermalReader(context: Context, private val dumper: ServiceDumper) {
 
     private val power = context.getSystemService(PowerManager::class.java)
     private var lastHeadroomAt = 0L
@@ -30,7 +28,7 @@ class ThermalReader(context: Context, private val shell: ShizukuShell) {
         status = ThermalStatus.of(power.currentThermalStatus),
         headroom = headroom(),
         headroomThresholds = thresholds(),
-        hal = if (includeHal) shell.output(ShellCommands.THERMAL_DUMP)?.let(ThermalDumpParser::parse) else null,
+        hal = if (includeHal) dumper.dump("thermalservice")?.let(ThermalDumpParser::parse) else null,
     )
 
     /** AOSP returns NaN when called again within 500 ms, so cache the value for a second. */

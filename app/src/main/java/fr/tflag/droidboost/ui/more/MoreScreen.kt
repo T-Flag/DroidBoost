@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.BatteryChargingFull
+import androidx.compose.material.icons.outlined.CleaningServices
+import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.NetworkCheck
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.Settings
@@ -26,6 +28,8 @@ val MORE_ENTRIES = listOf(
     MoreEntry("battery", "Batterie", "Santé, historique, sessions de charge", Icons.Outlined.BatteryChargingFull),
     MoreEntry("thermal", "Thermique", "Températures, bridage, épisodes", Icons.Outlined.Thermostat),
     MoreEntry("network", "Réseau", "Données par appli, débit en direct", Icons.Outlined.NetworkCheck),
+    MoreEntry("cleaner", "Nettoyage", "Gros fichiers, doublons, dossiers vides, restes d'applis", Icons.Outlined.CleaningServices),
+    MoreEntry("debloat", "Debloat Pixel", "Applis préinstallées classées par risque", Icons.Outlined.DeleteSweep),
     MoreEntry("privacy", "Vie privée", "Permissions sensibles, accès spéciaux", Icons.Outlined.PrivacyTip),
     MoreEntry("security", "Sécurité", "Correctif, démarrage vérifié, débogage, DNS", Icons.Outlined.Shield),
     MoreEntry("access", "Accès", "Shizuku, accès spéciaux, permissions ADB", Icons.Outlined.AdminPanelSettings),

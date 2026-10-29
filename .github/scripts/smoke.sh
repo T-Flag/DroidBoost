@@ -14,6 +14,7 @@ for p in PACKAGE_USAGE_STATS BATTERY_STATS DUMP WRITE_SECURE_SETTINGS READ_LOGS 
   adb shell pm grant "$PKG" "android.permission.$p" || true
 done
 adb shell appops set "$PKG" GET_USAGE_STATS allow || true
+adb shell appops set "$PKG" MANAGE_EXTERNAL_STORAGE allow || true
 adb logcat -c
 
 # Écran courant au format XML ; l'écran se met à jour en continu, d'où les essais répétés.
@@ -96,7 +97,7 @@ expect "Stockage" "Répartition" "Caches"
 
 tap_text "Journal" && sleep 8
 shot journal
-expect "Journal" "Tout" "Stabilité" "Début du journal"
+expect "Journal" "Tout" "Applis" "Début du journal"
 
 tap_text "Plus" && sleep 3
 shot plus
@@ -112,6 +113,16 @@ back
 tap_text "Réseau" && sleep 6
 shot reseau
 expect "Réseau" "Débit en direct" "Consommation"
+back
+tap_text "Nettoyage" && sleep 4
+expect "Nettoyage" "Analyse du stockage partagé"
+tap_text "Lancer l'analyse" && sleep 15
+shot nettoyage
+expect "Nettoyage" "Volume total"
+back
+tap_text "Debloat Pixel" && sleep 6
+shot debloat
+expect "Debloat" "Debloat Pixel"
 back
 tap_text "Vie privée" && sleep 8
 shot vie-privee

@@ -44,6 +44,8 @@ import java.util.Locale
 private val EPISODE_DATE = DateTimeFormatter.ofPattern("EEE d MMM, HH:mm", Locale.FRANCE)
 
 /** Sensor types worth a chart of their own, in display order. */
+private const val MAX_LIVE_SENSORS = 8
+
 private val CHARTED_TYPES = listOf("Surface", "CPU", "GPU", "Modem", "SoC", "TPU", "NPU")
 
 @Composable
@@ -78,8 +80,13 @@ fun ThermalScreen(viewModel: ThermalViewModel, contentPadding: PaddingValues, on
                             MetricRow(status.label, Formats.percent(value))
                         }
                     }
-                    if (state.shizuku !is ShizukuState.Ready) {
-                        MissingAccessHint("Températures par capteur : Shizuku requis.", "Configurer", onOpenAccess)
+                    if (live.hal == null) {
+                        MissingAccessHint("Températures par capteur : permission DUMP ou Shizuku requise.", "Configurer", onOpenAccess)
+                    } else {
+                        live.hal.temperatures.filter { fr.tflag.droidboost.core.model.TemperatureTypes.isTemperature(it.type) }
+                            .sortedByDescending { it.celsius }
+                            .take(MAX_LIVE_SENSORS)
+                            .forEach { MetricRow("${it.name} · ${fr.tflag.droidboost.core.model.TemperatureTypes.label(it.type)}", Formats.celsius(it.celsius)) }
                     }
                 }
             }

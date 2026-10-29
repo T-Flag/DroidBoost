@@ -24,7 +24,7 @@ enum class DevGrant(val permission: String, val title: String, val unlocks: Stri
     DUMP(
         "android.permission.DUMP",
         "Diagnostics système",
-        "Raisons de sortie des applis (LMK, ANR, plantages), dumps des services",
+        "Températures des capteurs sans Shizuku, plantages et ANR de toutes les applis, conso par appli",
     ),
     WRITE_SECURE_SETTINGS(
         "android.permission.WRITE_SECURE_SETTINGS",
@@ -35,6 +35,11 @@ enum class DevGrant(val permission: String, val title: String, val unlocks: Stri
         "android.permission.READ_LOGS",
         "Journaux système",
         "Lecture du logcat (au premier plan, après consentement)",
+    ),
+    ACCESS_FINE_POWER_MONITORS(
+        "android.permission.ACCESS_FINE_POWER_MONITORS",
+        "Mesure fine de l'énergie",
+        "Consommation par composant (CPU, GPU, modem, écran) rafraîchie en continu",
     ),
     ;
 

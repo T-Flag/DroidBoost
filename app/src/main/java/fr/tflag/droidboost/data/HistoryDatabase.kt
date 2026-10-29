@@ -84,6 +84,8 @@ data class PackageSnapshotEntity(
 
 data class PackageCount(val packageName: String, val count: Int)
 
+data class GrowthRow(val tag: String, val latest: Double?, val previous: Double?)
+
 @Dao
 interface SampleDao {
     @Insert
@@ -107,6 +109,18 @@ interface SampleDao {
 
     @Query("SELECT * FROM sample ORDER BY id LIMIT :limit OFFSET :offset")
     suspend fun page(limit: Int, offset: Int): List<SampleEntity>
+
+    /** Latest value per tag and the value at [before] (or the oldest one when the tag is more recent). */
+    @Query(
+        "SELECT s.tag AS tag, " +
+            "(SELECT l.value FROM sample l WHERE l.metric = :metric AND l.tag = s.tag ORDER BY l.ts DESC LIMIT 1) AS latest, " +
+            "COALESCE(" +
+            "(SELECT p.value FROM sample p WHERE p.metric = :metric AND p.tag = s.tag AND p.ts <= :before ORDER BY p.ts DESC LIMIT 1), " +
+            "(SELECT f.value FROM sample f WHERE f.metric = :metric AND f.tag = s.tag ORDER BY f.ts ASC LIMIT 1)" +
+            ") AS previous " +
+            "FROM sample s WHERE s.metric = :metric GROUP BY s.tag",
+    )
+    suspend fun growth(metric: String, before: Long): List<GrowthRow>
 
     @Query("SELECT DISTINCT tag FROM sample WHERE metric = :metric AND ts >= :since ORDER BY tag")
     suspend fun tags(metric: String, since: Long): List<String>
