@@ -59,9 +59,9 @@ tap_text() {
 
 tap_class() {
   local xml bounds
-  xml=$(dump) || return 1
+  xml=$(dump) || { echo "?? écran illisible pour trouver $1"; return 1; }
   bounds=$(echo "$xml" | tr '>' '\n' | grep -F "class=\"$1\"" | head -1 | grep -oE 'bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]"')
-  [ -z "$bounds" ] && return 1
+  [ -z "$bounds" ] && { echo "KO élément $1 introuvable"; echo "$xml" | tr '>' '\n' | grep -oE 'class="[^"]+"' | sort | uniq -c; return 1; }
   read -r x1 y1 x2 y2 < <(echo "$bounds" | grep -oE '[0-9]+' | tr '\n' ' ')
   adb shell input tap $(((x1 + x2) / 2)) $(((y1 + y2) / 2))
 }
@@ -74,7 +74,7 @@ shot tableau-de-bord
 expect "Tableau de bord" "Notification permanente" "Batterie" "Thermique"
 
 # Surveillance continue : l'interrupteur de la première carte.
-tap_class "android.widget.Switch" && sleep 5
+tap_class "android.widget.Switch" && sleep 8
 if adb shell dumpsys activity services "$PKG" | grep -q "MonitorService"; then
   echo "OK service de surveillance démarré"
 else
@@ -108,6 +108,18 @@ back
 tap_text "Thermique" && sleep 5
 shot thermique
 expect "Thermique" "Maintenant" "Historique"
+back
+tap_text "Réseau" && sleep 6
+shot reseau
+expect "Réseau" "Débit en direct" "Consommation"
+back
+tap_text "Vie privée" && sleep 8
+shot vie-privee
+expect "Vie privée" "Inclure les applis système" "Permissions sensibles accordées"
+back
+tap_text "Sécurité" && sleep 8
+shot securite
+expect "Sécurité" "Bilan de sécurité" "Correctif de sécurité"
 back
 tap_text "Réglages" && sleep 3
 shot reglages

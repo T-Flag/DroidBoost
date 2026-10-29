@@ -41,6 +41,11 @@ import fr.tflag.droidboost.ui.dashboard.DashboardViewModel
 import fr.tflag.droidboost.ui.journal.JournalScreen
 import fr.tflag.droidboost.ui.journal.JournalViewModel
 import fr.tflag.droidboost.ui.more.MoreScreen
+import fr.tflag.droidboost.ui.network.NetworkScreen
+import fr.tflag.droidboost.ui.network.NetworkViewModel
+import fr.tflag.droidboost.ui.privacy.PrivacyScreen
+import fr.tflag.droidboost.ui.privacy.PrivacyViewModel
+import fr.tflag.droidboost.ui.privacy.SecurityScreen
 import fr.tflag.droidboost.ui.settings.SettingsScreen
 import fr.tflag.droidboost.ui.settings.SettingsViewModel
 import fr.tflag.droidboost.ui.storage.StorageScreen
@@ -63,6 +68,9 @@ private val SECONDARY = mapOf(
     APP_DETAIL to ("Détail de l'appli" to Tab.APPS),
     "battery" to ("Batterie" to Tab.MORE),
     "thermal" to ("Thermique" to Tab.MORE),
+    "network" to ("Réseau" to Tab.MORE),
+    "privacy" to ("Vie privée" to Tab.MORE),
+    "security" to ("Sécurité" to Tab.MORE),
     "access" to ("Accès" to Tab.MORE),
     "settings" to ("Réglages" to Tab.MORE),
 )
@@ -178,6 +186,23 @@ fun DroidBoostRoot(container: AppContainer) {
                     onOpenDashboard = { openTab(Tab.DASHBOARD) },
                 )
             }
+            composable("network") {
+                NetworkScreen(
+                    viewModel { NetworkViewModel(container) },
+                    padding,
+                    onOpenApp = ::openApp,
+                    onOpenAccess = { navigateTo("access") },
+                )
+            }
+            composable("privacy") {
+                PrivacyScreen(
+                    viewModel { PrivacyViewModel(container) },
+                    padding,
+                    onOpenApp = ::openApp,
+                    onOpenAccess = { navigateTo("access") },
+                )
+            }
+            composable("security") { SecurityScreen(viewModel { PrivacyViewModel(container) }, padding) }
             composable("settings") { SettingsScreen(viewModel { SettingsViewModel(container) }, padding) }
         }
     }

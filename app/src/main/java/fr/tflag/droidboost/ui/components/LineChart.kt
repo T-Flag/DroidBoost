@@ -116,3 +116,27 @@ fun WindowSelector(selected: HistoryWindow, onSelect: (HistoryWindow) -> Unit, m
         }
     }
 }
+
+/** Stacked daily bars (e.g. mobile + Wi-Fi), oldest on the left. */
+@Composable
+fun StackedBarChart(
+    values: List<Pair<Long, Long>>,
+    modifier: Modifier = Modifier,
+    bottomColor: Color = MaterialTheme.colorScheme.primary,
+    topColor: Color = MaterialTheme.colorScheme.tertiary,
+    height: Dp = 120.dp,
+) {
+    val max = values.maxOfOrNull { it.first + it.second }?.takeIf { it > 0 } ?: 1L
+    Canvas(modifier.fillMaxWidth().height(height)) {
+        if (values.isEmpty()) return@Canvas
+        val slot = size.width / values.size
+        val barWidth = slot * 0.7f
+        values.forEachIndexed { i, (bottom, top) ->
+            val x = i * slot + (slot - barWidth) / 2
+            val bottomHeight = bottom.toFloat() / max * size.height
+            val topHeight = top.toFloat() / max * size.height
+            drawRect(bottomColor, Offset(x, size.height - bottomHeight), androidx.compose.ui.geometry.Size(barWidth, bottomHeight))
+            drawRect(topColor, Offset(x, size.height - bottomHeight - topHeight), androidx.compose.ui.geometry.Size(barWidth, topHeight))
+        }
+    }
+}
