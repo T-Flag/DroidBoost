@@ -78,9 +78,15 @@ tap_checkable() {
 
 back() { adb shell input keyevent 4; sleep 3; }
 
-adb shell am start -W -n "$PKG/fr.tflag.droidboost.MainActivity"
-sleep 8
-adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
+# Sur un émulateur lent, l'écran d'accueil revient parfois juste après le lancement : on relance jusqu'à voir l'appli.
+for attempt in 1 2 3; do
+  adb shell am start -W -n "$PKG/fr.tflag.droidboost.MainActivity"
+  sleep 8
+  adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
+  resumed=$(adb shell dumpsys activity activities | grep -m1 'ResumedActivity')
+  echo "$resumed" | grep -qF "$PKG/" && break
+  echo "?? appli pas au premier plan (essai $attempt) : $resumed"
+done
 shot tableau-de-bord
 expect "Tableau de bord" "Notification permanente" "Batterie" "Thermique"
 
